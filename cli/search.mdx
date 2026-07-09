@@ -1,0 +1,75 @@
+---
+title: "raiku search — Find Packages by Name, Tag, or Language"
+sidebarTitle: "search"
+description: "raiku search QUERY filters the local index by name, description, or author. Narrow results with --language and --tag flags. Supports language aliases."
+---
+
+`raiku search` queries the local `~/.raiku/index.json` for packages whose name, description, or author field contains the given query string. Matching is case-insensitive substring search, so `raiku search mat` will surface packages named `fast-math`, `matrix-ops`, and anything else that contains `mat`. You can narrow results to a specific language or tag, control how many rows are shown, and choose a sort order. Because the search runs entirely against the local index, it works offline — but you should run `raiku sync` first to make sure the index is current.
+
+## Usage
+
+```bash
+raiku search QUERY [--language LANG] [--tag TAG] [--limit N] [--sort FIELD]
+```
+
+## Flags
+
+| Flag | Short | Default | Description |
+|---|---|---|---|
+| `--language` | `-l` | all | Filter results to a single language (accepts aliases) |
+| `--tag` | `-t` | none | Filter to packages that carry a specific tag |
+| `--limit` | `-n` | `20` | Maximum number of results to display |
+| `--sort` | | `name` | Sort order: `name`, `latest`, or `language` |
+| `--verified` | | off | Show only packages marked as verified |
+| `--interactive` / `-i` | | off | Open the interactive TUI package browser |
+
+## Language Aliases
+
+The `--language` flag accepts both full names and common short aliases. All comparisons are case-insensitive.
+
+| Canonical Name | Accepted Aliases |
+|---|---|
+| Python | `python`, `py` |
+| Rust | `rust`, `rs` |
+| C | `c` |
+| C++ | `cpp`, `c++` |
+| Zig | `zig` |
+| Java | `java` |
+| C# | `csharp`, `c#`, `cs` |
+| Go | `go`, `golang` |
+
+## Examples
+
+<CodeGroup>
+```bash Basic search
+raiku search math
+```
+
+```bash Filter by language
+raiku search queue --language Go
+```
+
+```bash Filter by tag
+raiku search utils --tag collections
+```
+
+```bash Combine language and limit
+raiku search sort --language Python --limit 5
+```
+
+```bash Sort by newest release
+raiku search vec --sort latest
+```
+
+```bash Only verified packages
+raiku search graph --verified
+```
+
+```bash Use a language alias
+raiku search parse --language py
+```
+</CodeGroup>
+
+<Note>
+  `raiku search` operates entirely on the local index file. If the index is missing or stale, run `raiku sync` first to download the latest package list from GitHub.
+</Note>

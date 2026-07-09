@@ -1,0 +1,121 @@
+---
+title: "Reproducible Installs with raiku.lock"
+sidebarTitle: "Lock Files"
+description: "Use raiku.lock to record exact package versions and SHA-256 hashes for reproducible installs across machines. Generate it with --lock and restore with raiku from-lock."
+---
+
+When you build a project that depends on Raiku packages, the index will continue to receive updates — new versions, changed hashes, and new packages. Without a lock file, running `raiku install` on a different machine or at a later date might silently pick up a newer version of a dependency and produce a different build. `raiku.lock` solves this by recording the exact version, language, repository path, SHA-256 hash, and install timestamp for every package at the moment you install it. Committing `raiku.lock` to source control means anyone who checks out your project can recreate the exact same environment.
+
+---
+
+## Generating a Lock File
+
+Pass `--lock` to any `raiku install` command to write or update `raiku.lock` in the current directory:
+
+```bash
+raiku install fast-math --lock
+```
+
+If `raiku.lock` does not exist it is created automatically. If it already exists, the new package entry is merged in (or the existing entry is updated if the package was already locked at a different version). The file's `generated_at` timestamp is refreshed on every write.
+
+You can lock multiple packages in a single session by passing `--lock` to each install command, or by installing with `--lock` after every `raiku install` call in your setup script:
+
+```bash
+raiku install fast-math --lock
+raiku install goqueue --lock
+raiku install blazing-vec --lock
+```
+
+---
+
+## The raiku.lock Format
+
+`raiku.lock` is a plain JSON file. Here is a representative example:
+
+```json
+{
+  "lock_version": "1",
+  "generated_at": 1751673600,
+  "packages": {
+    "fast-math": {
+      "version": "1.0.0",
+      "language": "Python",
+      "path": "UserSub/Python/fast-math",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "installed_at": 1751673600
+    },
+    "goqueue": {
+      "version": "2.1.0",
+      "language": "Go",
+      "path": "UserSub/Go/goqueue",
+      "sha256": "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
+      "installed_at": 1751673601
+    }
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `lock_version` | string | Schema version of the lock file format (currently `"1"`) |
+| `generated_at` | integer | Unix timestamp of the last write |
+| `packages` | object | Map of package name → lock entry |
+| `packages.<name>.version` | string | Exact version that was installed |
+| `packages.<name>.language` | string | Language ecosystem (e.g. `"Python"`, `"Go"`) |
+| `packages.<name>.path` | string | Repository-relative path used to fetch the package |
+| `packages.<name>.sha256` | string | SHA-256 hash of the package's `raiku.toml` at install time |
+| `packages.<name>.installed_at` | integer | Unix timestamp when this entry was written |
+
+---
+
+## Installing from a Lock File
+
+```bash
+raiku from-lock
+```
+
+`raiku from-lock` reads `raiku.lock` in the current directory and installs each recorded package at its locked version and hash. Because the SHA-256 is checked against the value in the lock file rather than just the live index, this command provides a stronger reproducibility guarantee than a plain `raiku install`: if the index changes between your original install and the restore, the hash mismatch will be caught and reported.
+
+```bash
+# Clone your project and reproduce the exact environment
+git clone https://github.com/example/my-project
+cd my-project
+raiku from-lock
+```
+
+---
+
+## When to Commit raiku.lock
+
+<Tip>
+  Always commit `raiku.lock` to source control alongside your project. This is the single most important step for reproducible builds — it ensures that every developer, CI runner, and deployment environment uses exactly the same package versions and file hashes.
+</Tip>
+
+**Commit `raiku.lock` when:**
+- You want CI/CD pipelines to use the same packages as your development machine.
+- You are sharing a project with collaborators.
+- You are deploying an application and need to guarantee a known-good dependency set.
+- You want to be able to bisect regressions by comparing lock files across commits.
+
+**Update `raiku.lock` deliberately** by re-running `raiku install <package> --lock` after a manual `raiku update`, so the lock always reflects a conscious decision rather than an accidental drift.
+
+---
+
+## Relationship with Version Pins
+
+Lock files and version pins are complementary but distinct mechanisms:
+
+| Mechanism | Where stored | What it controls |
+|-----------|-------------|-----------------|
+| `raiku.lock` | Project directory (committed to repo) | Records exact versions and hashes for reproducible restores |
+| `~/.raiku/pins.json` | User's home directory | Prevents `raiku update --all` from upgrading specific packages |
+
+A pin prevents automatic updates in your local environment; a lock file enables any environment to reproduce your exact installed state. In practice you may use both: pin a stable dependency so `raiku update --all` never upgrades it, and keep `raiku.lock` committed so team members always start from the same baseline.
+
+```bash
+# Pin locally so --all never touches this package
+raiku pin add fast-math --reason "stable baseline"
+
+# Record current state for all collaborators
+raiku install fast-math --lock
+```

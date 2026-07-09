@@ -1,0 +1,119 @@
+---
+title: "raiku index — Manage the Local Package Index"
+sidebarTitle: "index"
+description: "raiku index provides three modes: --rebuild regenerates index.json from UserSub/, --stats shows package counts, --check validates every entry path and hash."
+---
+
+`raiku index` is a set of maintainer-focused tools for working with the Raiku package index. It operates on `index/index.json` — the central registry file that lives in the Raiku repository and is synced to users' machines via `raiku sync`. Most end users never need `raiku index` directly; it is primarily used by contributors and CI pipelines that manage the upstream registry. The three modes are `--rebuild`, `--stats`, and `--check`.
+
+## Usage
+
+```bash
+raiku index --rebuild [--root DIR] [--dry-run]
+raiku index --stats
+raiku index --check [--root DIR]
+```
+
+## Flags
+
+| Flag | Description |
+|------|-------------|
+| `--rebuild` | Scan `UserSub/` and regenerate `index/index.json` from the packages found on disk. |
+| `--stats` | Display package counts, language breakdown, schema version, and last sync time from the local index. |
+| `--check` | Validate every entry in the index: confirm paths exist and re-verify SHA-256 hashes. |
+| `--root DIR` | Repository root to use with `--rebuild` and `--check`. Defaults to the current directory. |
+| `--dry-run` | With `--rebuild`: print the generated JSON without writing it to disk. |
+
+## When to use each mode
+
+### `--rebuild`
+
+Used by repository contributors after adding or updating packages in `UserSub/`. It walks every `UserSub/<Language>/<package>/` directory, parses each `raiku.toml`, computes the SHA-256 of that file, and writes a fresh `index/index.json`. Typically triggered by CI on every pull request merge.
+
+```bash
+# Rebuild from the repository root
+raiku index --rebuild
+
+# Preview output without writing
+raiku index --rebuild --dry-run
+
+# Rebuild from a different root
+raiku index --rebuild --root /path/to/raiku-repo
+```
+
+### `--stats`
+
+A quick at-a-glance overview of the locally cached index. Useful for confirming the index is fresh and seeing how many packages are registered per language.
+
+```bash
+raiku index --stats
+```
+
+### `--check`
+
+Validates the consistency of the existing `index/index.json` against the files on disk. For every index entry it confirms:
+
+1. The declared `path` exists under the repository root.
+2. The SHA-256 hash in the index matches the current hash of `raiku.toml` on disk.
+
+Use `--check` in CI before merging contributions to catch accidental hash drift.
+
+```bash
+raiku index --check
+raiku index --check --root /path/to/raiku-repo
+```
+
+## Examples
+
+<CodeGroup>
+```bash Rebuild the index
+raiku index --rebuild
+```
+
+```bash Dry run — preview without writing
+raiku index --rebuild --dry-run
+```
+
+```bash Show index statistics
+raiku index --stats
+```
+
+```bash Validate all index entries
+raiku index --check
+```
+</CodeGroup>
+
+### Sample output of `raiku index --stats`
+
+```
+╭──── Index Statistics ─────╮
+│  Total packages   47       │
+│  Schema version   1.0.0    │
+│  Last synced      2024-11-12 09:43:01 │
+╰────────────────────────────╯
+
+ Language   Packages
+ ──────────────────
+ Python        18
+ Rust          12
+ Go             8
+ C/C++          5
+ Java           2
+ Zig            1
+ C#             1
+```
+
+<Note>
+`raiku index --rebuild` is typically run by CI after a package PR is merged, not by end users. If you just want to refresh your local copy of the index, use [`raiku sync`](/cli/sync) instead.
+</Note>
+
+<Tip>
+Combine `--rebuild` and `--check` in a CI pipeline to catch problems before they reach users:
+
+```bash
+raiku index --rebuild
+raiku index --check
+```
+
+This ensures the freshly generated index is self-consistent with the files on disk.
+</Tip>

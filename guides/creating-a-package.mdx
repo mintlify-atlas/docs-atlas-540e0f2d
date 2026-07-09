@@ -1,0 +1,295 @@
+---
+title: "Create and Publish a Raiku Package"
+sidebarTitle: "Creating a Package"
+description: "Scaffold a new Raiku package with raiku init, add your source code, validate with raiku validate, and generate the index entry with raiku publish."
+---
+
+Creating a Raiku package involves four artefacts — `raiku.toml`, `version.yml`, `README.md`, and a non-empty `src/` directory — plus an entry in the community index. The fastest path is the interactive `raiku init` wizard, which generates all required files with language-appropriate source templates in a single command. If you prefer full control over every field, you can create the files manually instead. Either way, you must pass `raiku validate` before the package can be published.
+
+---
+
+## Two Approaches to Scaffolding
+
+<Tabs>
+  <Tab title="Init Wizard (Recommended)">
+    The `raiku init` wizard prompts you for every required field and generates a complete, valid package with language-appropriate source templates. It is the fastest and most error-proof way to start.
+
+    **Interactive mode** — answer prompts for name, language, version, author, description, license, build command, and tags:
+
+    ```bash
+    raiku init
+    ```
+
+    **Non-interactive with a specific language** — name and language are supplied on the command line; remaining fields use sensible defaults:
+
+    ```bash
+    raiku init my-lib --language Rust
+    ```
+
+    **Fully automated** — all defaults accepted, no prompts, output written to a custom directory:
+
+    ```bash
+    raiku init fast-sort --language Python --output-dir ./packages --yes
+    ```
+
+    ### What Gets Generated
+
+    After the wizard completes, your package directory contains:
+
+    | File / Directory | Description |
+    |---|---|
+    | `raiku.toml` | Manifest with all required fields pre-filled |
+    | `version.yml` | Version manifest with today's date and `stable` level |
+    | `README.md` | Basic readme with install command and usage placeholder |
+    | `src/` | Language-specific source scaffold (see table below) |
+
+    ### Language-Specific src/ Content
+
+    | Language | Generated files in `src/` |
+    |----------|--------------------------|
+    | Python | `<name>.py`, `pyproject.toml` |
+    | Rust | `lib.rs`, `Cargo.toml` |
+    | C | `<name>.c`, `<name>.h` |
+    | C++ | `<name>.hpp`, `<name>.cpp`, `CMakeLists.txt` |
+    | Zig | `<name>.zig`, `build.zig` |
+    | Java | `dev/raiku/<name>/<Name>.java` |
+    | C# | `<Name>.cs`, `<name>.csproj` |
+    | Go | `<name>.go`, `<name>_test.go`, `go.mod` |
+
+    <Tip>
+      Run `raiku validate --dir ./<name>` immediately after `raiku init` to confirm the generated files pass all schema checks before you write any source code.
+    </Tip>
+  </Tab>
+
+  <Tab title="Manual Creation">
+    If you prefer to write every file yourself, follow these steps exactly.
+
+    **Step 1 — Create the directory structure**
+
+    Place your package under the correct language subdirectory:
+
+    ```
+    UserSub/<Language>/<your-package-name>/
+      raiku.toml
+      version.yml
+      README.md
+      src/
+        <your source files>
+    ```
+
+    Replace `<Language>` with one of: `Python`, `Rust`, `C`, `CPP`, `Zig`, `Java`, `CSharp`, `Go`.
+
+    **Step 2 — Write raiku.toml**
+
+    ```toml
+    name = "your-package-name"
+    version = "1.0.0"
+    language = "Python"
+    author = "Your Name"
+    description = "One sentence about what this does."
+    license = "MIT"
+    build_command = "pip install -e ."
+    tags = ["utils", "math"]       # optional but recommended
+    dependencies = []              # list of other Raiku package names
+    ```
+
+    **Step 3 — Write version.yml**
+
+    ```yaml
+    version: "1.0.0"          # must match raiku.toml exactly
+    release_date: "2026-07-04"
+    stability_level: stable
+    changelog:
+      - "Initial release"
+    ```
+
+    **Step 4 — Write README.md**
+
+    Your README must contain at minimum:
+    - What the package does (one to two sentences)
+    - The `raiku install <name>` install command
+    - A basic usage example
+
+    **Step 5 — Add source files to src/**
+
+    Create at least one source file appropriate for your language. The `src/` directory must be non-empty when you run validation.
+  </Tab>
+</Tabs>
+
+---
+
+## From Scaffold to Published Package
+
+Once your directory is scaffolded, follow these steps to validate, generate the index entry, and open a pull request.
+
+<Steps>
+  <Step title="Fill in your source code in src/">
+    Replace placeholder source files with your actual implementation. Ensure the code is buildable using the `build_command` you declared in `raiku.toml`.
+  </Step>
+
+  <Step title="Validate the package">
+    Run the validator against your package directory. Every check must pass — zero errors are required before you can publish.
+
+    ```bash
+    raiku validate --dir ./my-package
+    ```
+
+    A successful run prints a green **PASSED** panel. If any checks fail, the output lists every error with the field name and reason. Fix all errors before continuing.
+  </Step>
+
+  <Step title="Generate the index entry and SHA-256">
+    `raiku publish` re-runs validation, computes the SHA-256 hash of your `raiku.toml`, and prints the exact JSON block to add to the index along with contribution instructions.
+
+    ```bash
+    raiku publish --dir ./my-package
+    ```
+
+    The command output includes a ready-to-paste JSON object like:
+
+    ```json
+    {
+        "name": "my-package",
+        "version": "1.0.0",
+        "language": "Python",
+        "author": "Your Name",
+        "description": "One sentence description.",
+        "path": "UserSub/Python/my-package",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+    ```
+  </Step>
+
+  <Step title="Add the index entry to index/index.json">
+    Copy the JSON block printed by `raiku publish` and paste it into the `"packages"` array in `index/index.json`. Keep the file valid JSON — broken JSON blocks all installs for every user.
+  </Step>
+
+  <Step title="Verify the index is consistent">
+    Confirm every entry in the index resolves to a valid path and hash:
+
+    ```bash
+    raiku index --check --root .
+    ```
+
+    All entries should be reported as valid.
+  </Step>
+
+  <Step title="Open a pull request">
+    Fork the repository, push your branch, and open a PR against `main`:
+
+    - **Title**: `add(<Language>): your-package-name v1.0.0`
+    - **Branch**: `add/<language>/your-package-name`
+    - **Body**: include the output of `raiku validate` and a brief description
+
+    See the [Contributing guide](/guides/contributing) for the full PR workflow and review process.
+  </Step>
+</Steps>
+
+---
+
+## Real-World raiku.toml Examples
+
+### Python — fast-math
+
+```toml
+name = "fast-math"
+version = "1.0.0"
+language = "Python"
+author = "Ada Lovelace"
+description = "High-performance math utilities for numerical computing."
+license = "MIT"
+homepage = "https://github.com/SGizek/Raiku"
+build_command = "pip install -e ."
+dependencies = []
+```
+
+### Rust — blazing-vec
+
+```toml
+name = "blazing-vec"
+version = "1.0.0"
+language = "Rust"
+author = "Graydon Hoare"
+description = "Zero-cost SIMD vector operations for Rust."
+license = "MIT"
+homepage = "https://github.com/SGizek/Raiku"
+build_command = "cargo build --release"
+dependencies = []
+```
+
+---
+
+## Example version.yml
+
+```yaml
+version: "1.0.0"
+release_date: "2026-07-03"
+stability_level: stable
+changelog:
+  - "Initial release"
+  - "Fast integer and floating-point operations"
+  - "Vectorised dot product and cross product helpers"
+```
+
+<Warning>
+The `version` field in `version.yml` must exactly match the `version` field in `raiku.toml`. A mismatch is a hard validation error that blocks publishing.
+</Warning>
+
+---
+
+## Declaring Dependencies
+
+If your package requires another Raiku package to be installed first, list it in `raiku.toml`:
+
+```toml
+dependencies = ["fast-math", "other-pkg"]
+```
+
+Raiku automatically resolves transitive dependencies and installs them in the correct order before the main package. Each entry must be a valid Raiku package name that exists in the index. Circular dependency chains are detected and rejected at validation time.
+
+---
+
+## Tag Conventions
+
+Tags power `raiku search --tag <tag>` filtering. Add relevant, descriptive tags in `raiku.toml`:
+
+```toml
+tags = ["math", "vectors", "linear-algebra"]
+```
+
+Follow these conventions to keep tags discoverable:
+
+- Use **lowercase** and **hyphenated** multi-word tags.
+- Prefer established category names over one-off labels.
+
+Common recommended categories:
+
+| Category | Examples |
+|---|---|
+| Algorithms & data | `math`, `data-structures`, `collections`, `geometry` |
+| Systems | `networking`, `concurrency`, `io`, `crypto` |
+| Language utilities | `strings`, `parsing`, `testing`, `utils` |
+
+---
+
+## Build Command Guidelines
+
+<Note>
+Build commands are executed in a restricted subprocess environment with a 300-second hard timeout. The following patterns are **absolutely forbidden** and will cause `raiku validate` to reject the package immediately:
+
+`rm -rf`, `rmdir /s`, `del /f`, `format`, `:(){:|:&};:`, `dd if=`, `mkfs`, `wget http://`, `curl http://`, `> /dev/sd*`, `chmod 777`, `sudo rm`, `DROP TABLE`, `__import__`, `exec(`, `eval(`, `os.system`, `subprocess.call`, `subprocess.Popen`
+</Note>
+
+Recommended build command patterns by language:
+
+| Language | Recommended build command |
+|---|---|
+| Python | `pip install -e .` |
+| Rust | `cargo build --release` |
+| C | `gcc -O2 -o <out> src/<main>.c` |
+| C++ | `cmake -S src -B build && cmake --build build` |
+| Zig | `zig build` |
+| Java | `javac -d out src/**/*.java` |
+| C# | `dotnet build src/<proj>.csproj -c Release` |
+| Go | `go build ./...` |
+
+Build commands must be non-interactive, reproducible, and deterministic. Network access during the build is permitted but discouraged — prefer vendored dependencies where possible.

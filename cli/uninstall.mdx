@@ -1,0 +1,44 @@
+---
+title: "raiku uninstall — Remove a Package from Local Cache"
+sidebarTitle: "uninstall"
+description: "raiku uninstall removes a package from ~/.raiku/cache/. Use --version to remove a specific version only, or omit it to remove all cached versions."
+---
+
+`raiku uninstall` deletes one or more cached versions of a package from `~/.raiku/cache/`. By default it removes every version of the named package that is present in the cache, printing a confirmation prompt before doing so. If you want to keep other versions intact, pass `--version` with the exact version string you want to delete. The `--yes` flag suppresses the prompt for use in scripts or automated environments.
+
+## Usage
+
+```bash
+raiku uninstall PACKAGE [--yes] [--version VER]
+```
+
+## Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--yes` | `-y` | Skip the interactive confirmation prompt |
+| `--version` | | Remove only the specified version; all other cached versions are kept |
+
+## Examples
+
+<CodeGroup>
+```bash Remove all cached versions (with prompt)
+raiku uninstall fast-math
+```
+
+```bash Remove without being prompted
+raiku uninstall goqueue --yes
+```
+
+```bash Remove only a specific version
+raiku uninstall blazing-vec --version 1.0.0
+```
+
+```bash Remove a specific version without prompt
+raiku uninstall blazing-vec --version 1.0.0 --yes
+```
+</CodeGroup>
+
+<Note>
+  `raiku uninstall` only removes files from your **local cache** at `~/.raiku/cache/`. It does not affect the Raiku registry, the remote index, or any other user's installation. The package can be reinstalled at any time with `raiku install <package>`.
+</Note>

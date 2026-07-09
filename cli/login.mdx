@@ -1,0 +1,100 @@
+---
+title: "raiku login — Store a GitHub Token for PR Submission"
+sidebarTitle: "login"
+description: "raiku login stores a GitHub personal access token for use with raiku publish --submit. Use raiku whoami to confirm the stored identity and logout to clear it."
+---
+
+`raiku login` stores a GitHub Personal Access Token (PAT) in `~/.raiku/auth.json` so that `raiku publish --submit` can open pull requests on your behalf without you having to paste credentials every time. The token is verified against the GitHub API at login time so you know immediately whether it is valid. On POSIX systems the auth file is written with `chmod 600` so only your user account can read it.
+
+## Usage
+
+```bash
+raiku login [--token TOKEN]
+raiku whoami
+raiku logout
+```
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| `raiku login` | Prompt for (or accept via `--token`) a GitHub PAT, verify it, and store it. |
+| `raiku whoami` | Display the GitHub username associated with the stored token. |
+| `raiku logout` | Delete the stored credentials from `~/.raiku/auth.json`. |
+
+## Flags for `raiku login`
+
+| Flag | Description |
+|------|-------------|
+| `--token TOKEN` | Provide the PAT directly (skips the interactive prompt). Useful for scripted setups. |
+
+## What login stores
+
+Raiku writes a JSON file at `~/.raiku/auth.json` containing:
+
+```json
+{
+  "token": "ghp_xxxxxxxxxxxxxxxxxxxx",
+  "username": "your-github-username",
+  "name": "Your Full Name"
+}
+```
+
+The file permissions are set to `600` on Linux and macOS. On Windows, file-level permission restriction is not applied but the file is still stored in your user home directory.
+
+## Required token scope
+
+The PAT must have the **`repo`** scope to open pull requests against the Raiku repository. You can create a fine-grained token with `Contents: Read` and `Pull requests: Write` on the target repository, or use a classic PAT with `repo`.
+
+Create tokens at: [github.com/settings/tokens](https://github.com/settings/tokens)
+
+## When is the token used?
+
+The stored token is only used by `raiku publish --submit`. All other Raiku commands (install, sync, search, etc.) are unauthenticated and do not require a GitHub token.
+
+## Examples
+
+<CodeGroup>
+```bash Interactive login
+raiku login
+# GitHub Personal Access Token: ****
+```
+
+```bash Non-interactive login (e.g. CI)
+raiku login --token ghp_xxxxxxxxxxxxxxxxxxxx
+```
+
+```bash Confirm stored identity
+raiku whoami
+```
+
+```bash Remove stored credentials
+raiku logout
+```
+</CodeGroup>
+
+### Sample output of `raiku login`
+
+```
+╭──────────────────────────────────────────╮
+│ ✓ Logged in as your-username (Your Name) │
+╰──────────────────────────────────────────╯
+  Token stored at /home/user/.raiku/auth.json
+
+  Use raiku publish --submit to open PRs automatically.
+```
+
+### Sample output of `raiku whoami`
+
+```
+✓ Logged in as your-username (Your Name)
+  Auth file: /home/user/.raiku/auth.json
+```
+
+<Note>
+Your token is validated against the GitHub API at login time to catch typos and expired tokens early. If the API is unreachable, Raiku saves the token anyway with a warning — it may still work when you run `raiku publish --submit`.
+</Note>
+
+<Warning>
+Keep your GitHub token private. Do not commit `~/.raiku/auth.json` to source control or share it in logs. If a token is compromised, revoke it immediately at [github.com/settings/tokens](https://github.com/settings/tokens) and run `raiku logout` followed by `raiku login` with a fresh token.
+</Warning>

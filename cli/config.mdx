@@ -1,0 +1,105 @@
+---
+title: "raiku config — View and Modify CLI Configuration"
+sidebarTitle: "config"
+description: "raiku config manages settings in ~/.raiku/config.toml via list, get, set, and reset subcommands. Controls safe mode, verbosity, color, cache path, and remote URLs."
+---
+
+`raiku config` is your interface to `~/.raiku/config.toml` — the persistent settings file that controls how Raiku behaves. Rather than editing TOML by hand, the four subcommands (`list`, `get`, `set`, `reset`) let you inspect and modify every setting safely from the terminal, with automatic type coercion and validation. Changes take effect immediately on the next command invocation; there is no daemon to restart.
+
+## Usage
+
+```bash
+raiku config list
+raiku config get KEY
+raiku config set KEY VALUE
+raiku config reset [--yes]
+```
+
+## Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `list` | Print all current configuration values in a table. |
+| `get KEY` | Print the current value of one key. |
+| `set KEY VALUE` | Update KEY to VALUE and save to `~/.raiku/config.toml`. |
+| `reset [--yes]` | Restore every key to its default value. |
+
+## Configurable keys
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `safe_mode` | bool | `true` | Prompt for confirmation before executing any package build command. |
+| `auto_trust` | bool | `false` | When true, build commands run without prompting (overrides `safe_mode`). |
+| `verbose` | bool | `false` | Enable verbose/debug output for every command by default. |
+| `color` | bool | `true` | Enable ANSI colour in CLI output. |
+| `index_url` | string | GitHub raw URL | URL of the remote `index.json` fetched by `raiku sync`. |
+| `raw_base_url` | string | GitHub raw URL | Base URL used to fetch raw package files during install. |
+| `cache_dir` | string | `~/.raiku/cache` | Absolute path to the local package cache directory. |
+| `readonly` | bool | `false` | When true, all cache writes are blocked (useful in CI or shared environments). |
+
+### Accepted boolean values
+
+When setting a boolean key, any of the following strings are accepted:
+
+- **True:** `true`, `1`, `yes`, `on`
+- **False:** `false`, `0`, `no`, `off`
+
+## Examples
+
+<CodeGroup>
+```bash List all settings
+raiku config list
+```
+
+```bash Read a single key
+raiku config get safe_mode
+```
+
+```bash Enable verbose output
+raiku config set verbose true
+```
+
+```bash Disable colour output
+raiku config set color false
+```
+
+```bash Point to a custom index URL
+raiku config set index_url https://example.com/packages/index.json
+```
+
+```bash Move cache to a larger drive
+raiku config set cache_dir /mnt/ssd/raiku-cache
+```
+
+```bash Reset all settings to defaults
+raiku config reset
+```
+
+```bash Reset without prompting (e.g. in CI)
+raiku config reset --yes
+```
+</CodeGroup>
+
+### Sample output of `raiku config list`
+
+```
+╭──── Raiku Configuration  (/home/user/.raiku/config.toml) ────╮
+│ Key             Value                 Description              │
+│ ─────────────────────────────────────────────────────────── │
+│ safe_mode       True                  Always prompt before … │
+│ auto_trust      False                 Never silently trust … │
+│ verbose         False                 Enable verbose output … │
+│ color           True                  Enable colored output  │
+│ readonly        False                 Prevent all cache …    │
+│ index_url       https://raw.githu…    URL of remote index    │
+│ raw_base_url    https://raw.githu…    Base URL for fetching  │
+╰────────────────────────────────────────────────────────────────╯
+```
+
+<Warning>
+Setting `safe_mode = false` means build commands embedded in packages will execute **without any confirmation prompt**. Only disable safe mode if you fully trust all packages you intend to install. Enabling `auto_trust = true` has the same effect — build commands run silently for every package.
+</Warning>
+
+<Note>
+The `readonly` flag is intended for CI pipelines or shared read-only environments. When enabled, `raiku install`, `raiku uninstall`, and any other cache-writing commands are blocked. Use `raiku config set readonly false` to re-enable writes.
+</Note>

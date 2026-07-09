@@ -1,0 +1,182 @@
+---
+title: "Configure Raiku Behavior and Settings"
+sidebarTitle: "Configuration"
+description: "Raiku stores all settings in ~/.raiku/config.toml. Learn every configurable key, its default, and how to change it with raiku config commands."
+---
+
+Raiku stores all user configuration in a single TOML file at `~/.raiku/config.toml`. The file is created automatically with sensible defaults the first time you run any `raiku` command — you never need to create it by hand. Every key can be changed either by editing the file directly or by using the `raiku config` subcommands, which read and write the same file without requiring a text editor. Settings take effect immediately; no daemon restart is needed.
+
+## Full Configuration File
+
+The following block shows every section and key that Raiku recognises, with their default values. Any key you omit falls back to the default shown here.
+
+```toml
+[behaviour]
+safe_mode  = true    # Always prompt before running build commands (recommended)
+auto_trust = false   # Never silently mark packages as trusted
+verbose    = false   # Enable verbose output by default
+readonly   = false   # Prevent all cache writes when true
+
+[remote]
+index_url    = "https://raw.githubusercontent.com/SGizek/Raiku/main/index/index.json"
+raw_base_url = "https://raw.githubusercontent.com/SGizek/Raiku/main"
+
+[paths]
+cache_dir = "~/.raiku/cache"
+
+[display]
+color = true         # Enable colored terminal output
+```
+
+## Configuration Key Reference
+
+| Key | Section | Type | Default | Description |
+|---|---|---|---|---|
+| `safe_mode` | `[behaviour]` | bool | `true` | Show the build command and require explicit approval (`y`/`n`) before executing it during `install`, `update`, and `from-lock`. |
+| `auto_trust` | `[behaviour]` | bool | `false` | When `false`, packages are never silently added to the trust database. When `true`, Raiku skips the trust prompt entirely — use with caution. |
+| `verbose` | `[behaviour]` | bool | `false` | Print detailed progress and debug information for every operation. Equivalent to passing `--verbose` / `-v` on every command. |
+| `readonly` | `[behaviour]` | bool | `false` | When `true`, Raiku will not write anything to the cache directory. Useful for read-only or shared filesystem environments. |
+| `index_url` | `[remote]` | string | `https://raw.githubusercontent.com/SGizek/Raiku/main/index/index.json` | The remote URL from which `raiku sync` downloads the package index. Override to point at a fork or mirror. |
+| `raw_base_url` | `[remote]` | string | `https://raw.githubusercontent.com/SGizek/Raiku/main` | Base URL used to construct individual package file URLs (e.g. `{raw_base_url}/{package_path}/raiku.toml`). Override together with `index_url` when using a fork. |
+| `cache_dir` | `[paths]` | string | `~/.raiku/cache` | Directory where downloaded and built packages are stored. Can be set to a shared network path for team caches. |
+| `color` | `[display]` | bool | `true` | Enable Rich terminal colors and formatting. Disable in environments that do not support ANSI escape codes. Equivalent to passing `--no-color` on every command. |
+
+<Warning>
+  Setting `safe_mode = false` or `auto_trust = true` reduces Raiku's protection against malicious build commands. Only disable these settings if you are working exclusively with packages you have personally reviewed or trust unconditionally. The static forbidden-pattern scan (which blocks patterns like `rm -rf`, `eval(`, and `subprocess.Popen`) remains active regardless of these settings, but it does not catch every possible harmful command.
+</Warning>
+
+## CLI Config Commands
+
+You can read and write every configuration key without ever opening the file directly.
+
+### View all settings
+
+```bash
+raiku config list
+```
+
+Prints every key and its current value, grouped by section:
+
+```
+[behaviour]
+  safe_mode  = true
+  auto_trust = false
+  verbose    = false
+  readonly   = false
+
+[remote]
+  index_url    = https://raw.githubusercontent.com/SGizek/Raiku/main/index/index.json
+  raw_base_url = https://raw.githubusercontent.com/SGizek/Raiku/main
+
+[paths]
+  cache_dir = /home/you/.raiku/cache
+
+[display]
+  color = true
+```
+
+### Read a single key
+
+```bash
+raiku config get safe_mode
+```
+
+### Update a key
+
+Pass the key name and new value as positional arguments:
+
+```bash
+raiku config set safe_mode false
+raiku config set verbose true
+raiku config set cache_dir /mnt/shared/raiku/cache
+raiku config set color false
+```
+
+Changes are written to `~/.raiku/config.toml` immediately and take effect on the next command invocation.
+
+### Reset to defaults
+
+Wipe all customisations and restore factory defaults:
+
+```bash
+raiku config reset
+```
+
+<Info>
+  The `--verbose` / `-v` and `--no-color` global flags act as per-invocation overrides. They do not permanently change `config.toml`. To make either setting permanent, use `raiku config set verbose true` or `raiku config set color false` instead.
+</Info>
+
+## Raiku Home Directory Layout
+
+All Raiku runtime state lives under `~/.raiku/`. The directory is created automatically on first run.
+
+```
+~/.raiku/
+  config.toml       ← user configuration (this file)
+  index.json        ← package index cached by `raiku sync`
+  trusted.json      ← persistently trusted packages (managed by `raiku trust`)
+  pins.json         ← pinned package versions (managed by `raiku pin`)
+  cache/            ← installed package files
+    <Language>/
+      <package>/
+        <version>/
+          raiku.toml
+          version.yml
+          README.md
+          src/
+```
+
+<Tip>
+  The `RAIKU_HOME` environment variable overrides the `~/.raiku/` base path. Set it in your shell profile to relocate all Raiku state to a custom directory — for example a project-local `.raiku/` folder for fully isolated environments:
+
+  ```bash
+  export RAIKU_HOME="$PWD/.raiku"
+  raiku sync
+  raiku install fast-math
+  ```
+</Tip>
+
+## Environment-Specific Configuration Examples
+
+<Tabs>
+  <Tab title="CI / Read-Only">
+    In continuous integration pipelines where you want to use a pre-populated cache without writing anything new:
+
+    ```toml
+    [behaviour]
+    safe_mode  = false   # No interactive prompts in CI
+    auto_trust = true    # All packages pre-reviewed
+    verbose    = true    # Full output for build logs
+    readonly   = true    # Never modify the shared cache
+
+    [paths]
+    cache_dir = "/mnt/ci-cache/raiku"
+    ```
+  </Tab>
+  <Tab title="Development Workstation">
+    A typical developer configuration that turns on verbose output and points the cache at a local SSD:
+
+    ```toml
+    [behaviour]
+    safe_mode  = true
+    auto_trust = false
+    verbose    = true
+    readonly   = false
+
+    [paths]
+    cache_dir = "/fast-ssd/raiku/cache"
+
+    [display]
+    color = true
+    ```
+  </Tab>
+  <Tab title="Fork / Mirror">
+    If you are running Raiku against a fork of the registry (for example an internal company mirror), override both remote URLs together:
+
+    ```toml
+    [remote]
+    index_url    = "https://raw.githubusercontent.com/MyOrg/RaikuMirror/main/index/index.json"
+    raw_base_url = "https://raw.githubusercontent.com/MyOrg/RaikuMirror/main"
+    ```
+  </Tab>
+</Tabs>

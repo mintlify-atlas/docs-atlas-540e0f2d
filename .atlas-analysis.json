@@ -1,23 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "Raiku",
+  "projectType": "cli-tool",
+  "projectName": "Raiku",
+  "projectDescription": "A community-driven, Git-based, multi-language package manager CLI that fetches, validates, and builds packages for Python, Rust, C, C++, Zig, Java, C#, and Go.",
   "theme": "aspen",
-  "colors": {
-    "primary": "#5B6AD0",
-    "light": "#7B8FE8",
-    "dark": "#3A4ABF"
-  },
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/SGizek/Raiku"
-    }
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/SGizek/Raiku"
-    }
-  },
+  "primaryColor": "#5B6AD0",
+  "lightColor": "#7B8FE8",
+  "darkColor": "#3A4ABF",
   "navigation": {
     "tabs": [
       {
@@ -128,5 +116,58 @@
         ]
       }
     ]
-  }
+  },
+  "keyFeatures": [
+    "Multi-language support: Python, Rust, C, C++, Zig, Java, C#, and Go",
+    "Community-driven Git-based package registry hosted on GitHub",
+    "SHA-256 hash verification on every package download",
+    "Safe mode — prompts before executing any build command",
+    "Forbidden pattern scan blocks dangerous shell commands even with --trust",
+    "Transitive dependency resolution with circular dependency detection",
+    "Lock file (raiku.lock) for reproducible installs across machines",
+    "Persistent trust system with per-machine trusted.json store",
+    "Streaming download progress bars with resumable downloads",
+    "Interactive init wizard generating language-specific scaffolding",
+    "Built-in doctor command checks all required build toolchains",
+    "Shell completions for bash, zsh, fish, and PowerShell"
+  ],
+  "publicApiSurface": [
+    "raiku sync [--force]",
+    "raiku search QUERY [--language LANG] [--tag TAG] [--limit N] [--sort latest]",
+    "raiku install PACKAGE [--trust] [--no-build] [--force] [--no-deps] [--lock]",
+    "raiku uninstall PACKAGE [--yes] [--version VER]",
+    "raiku update [PACKAGE] [--all] [--dry-run]",
+    "raiku outdated [--language LANG] [--json]",
+    "raiku init [NAME] [--language LANG] [--output-dir DIR] [--yes]",
+    "raiku validate [--dir PATH] [--all] [--language LANG] [--strict]",
+    "raiku publish [--dir PATH] [--dry-run] [--submit]",
+    "raiku lint [--dir PATH]",
+    "raiku info PACKAGE [--json] [--changelog] [--deps-tree]",
+    "raiku list [--language LANG] [--json]",
+    "raiku diff PACKAGE",
+    "raiku why PACKAGE",
+    "raiku graph",
+    "raiku run PACKAGE CMD",
+    "raiku test PACKAGE",
+    "raiku bench PACKAGE",
+    "raiku audit [--language LANG] [--fix]",
+    "raiku verify PACKAGE",
+    "raiku rollback PACKAGE",
+    "raiku repair",
+    "raiku doctor [--language LANG]",
+    "raiku stats",
+    "raiku config list|get|set|reset",
+    "raiku cache --info | --clear [--yes]",
+    "raiku index --rebuild | --stats | --check",
+    "raiku pin add|remove|list PACKAGE",
+    "raiku trust add|remove|list|clear PACKAGE",
+    "raiku export",
+    "raiku import",
+    "raiku from-lock",
+    "raiku login",
+    "raiku whoami",
+    "raiku logout",
+    "raiku completion SHELL [--install]",
+    "raiku upgrade"
+  ]
 }

@@ -1,0 +1,94 @@
+---
+title: "raiku list — Show All Installed Packages"
+sidebarTitle: "list"
+description: "raiku list displays all packages currently installed in ~/.raiku/cache/. Filter by language with --language or export machine-readable output with --json."
+---
+
+`raiku list` gives you an at-a-glance overview of every package currently cached on your machine. It reads the local cache metadata stored under `~/.raiku/cache/` and renders a sorted table showing each package's name, version, language, author, and installation date. Use `--language` to narrow the output to a single ecosystem, or `--json` to get a machine-readable array suitable for scripting, CI audits, or piping into other tools.
+
+## Usage
+
+```bash
+raiku list [--language LANG] [--json]
+```
+
+## Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--language` | `-l` | Filter the output to packages of one language only |
+| `--json` | — | Print a JSON array instead of the rich table |
+
+## Behavior
+
+- Packages are sorted alphabetically by name.
+- Each row includes the installation timestamp formatted as `YYYY-MM-DD`.
+- If no packages are installed (or none match the language filter), a helpful message is printed suggesting `raiku install`.
+- The total installed count is printed below the table.
+
+<Note>
+  `raiku list` reads only from the local cache — it does not require a network connection or a synced index.
+</Note>
+
+## Examples
+
+<CodeGroup>
+
+```bash List all installed packages
+raiku list
+```
+
+```bash List only installed Rust packages
+raiku list --language Rust
+```
+
+```bash Machine-readable JSON output
+raiku list --json
+```
+
+```bash Filter by language, JSON output
+raiku list --language Go --json
+```
+
+</CodeGroup>
+
+## Sample Table Output
+
+```
+           Installed Packages
+ ──────────────────────────────────────────────────────────────────
+ Name                Version   Language   Author        Installed
+ ──────────────────────────────────────────────────────────────────
+ blazing-vec         2.1.0     Rust       Alice Smith   2024-06-10
+ fast-math           1.2.0     Python     Jane Doe      2024-06-08
+ goqueue             0.9.1     Go         Bob Lee       2024-06-11
+ ──────────────────────────────────────────────────────────────────
+3 package(s) installed.
+```
+
+## JSON Output Format
+
+With `--json`, each element in the array includes all cached metadata fields:
+
+```json
+[
+  {
+    "name": "fast-math",
+    "version": "1.2.0",
+    "language": "Python",
+    "author": "Jane Doe",
+    "installed_at": 1717804800
+  },
+  {
+    "name": "blazing-vec",
+    "version": "2.1.0",
+    "language": "Rust",
+    "author": "Alice Smith",
+    "installed_at": 1718150400
+  }
+]
+```
+
+<Tip>
+  Combine `raiku list --json` with `jq` to build custom reports. For example, count packages by language: `raiku list --json | jq 'group_by(.language) | map({language: .[0].language, count: length})'`
+</Tip>

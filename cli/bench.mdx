@@ -1,0 +1,113 @@
+---
+title: "raiku bench — Run Package Benchmarks"
+sidebarTitle: "bench"
+description: "raiku bench auto-detects and runs benchmarks for an installed package, supporting criterion for Rust, timeit for Python, and testing.B for Go."
+---
+
+`raiku bench` provides a consistent interface for running benchmarks against any installed Raiku package, regardless of language. It resolves the package's cache directory, auto-detects the appropriate benchmarking tool for the package's language, and streams the results directly to your terminal. For Python packages, `raiku bench` also performs a file-based discovery step — scanning `src/` for `bench_*.py` or `benchmark*.py` files before falling back to the language-level runner. Exit codes match the benchmark runner's, making it scriptable for regression detection in CI.
+
+## Usage
+
+```bash
+raiku bench PACKAGE [--version VER] [--runner CMD] [--count N]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `PACKAGE` | Name of the installed package to benchmark |
+
+## Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--version` | — | latest installed | Benchmark a specific installed version |
+| `--runner` | — | auto-detected | Override the benchmark runner (space-separated command string) |
+| `--count` | `-n` | runner default | Iteration count — passed to the runner where supported (currently Python) |
+
+## Auto-Detection by Language
+
+| Language | Runner | Command |
+|----------|--------|---------|
+| Python | pytest-benchmark (file discovery first) | `python -m pytest --benchmark-only -v` |
+| Python (fallback) | timeit | `python -m timeit -n 1000 pass` |
+| Rust | cargo bench (criterion) | `cargo bench` |
+| C | make bench | `make bench` |
+| C++ | cmake bench | `cmake --build build --target bench` |
+| C++ (fallback) | make bench | `make bench` |
+| Zig | zig build bench | `zig build bench` |
+| Java | mvn benchmark | `mvn exec:java -Dbenchmark=true -q` |
+| C# | dotnet bench | `dotnet run -c Release` |
+| Go | go test -bench | `go test -bench=. -benchmem -run=^$ ./...` |
+
+For Python, `raiku bench` first scans `src/` for files matching `bench_*.py` or `benchmark*.py`. If found, the first matching file is executed directly with `python <file>` before any other runner is tried.
+
+<Note>
+  For Rust packages, `cargo bench` requires that the `Cargo.toml` defines at least one `[[bench]]` section. Packages that do not ship benchmarks will exit with an error from Cargo, not from Raiku.
+</Note>
+
+## Behavior
+
+- Benchmarks run inside the package's cache directory (`~/.raiku/cache/<Language>/<name>/<version>/`).
+- The selected runner name and full command are printed before execution.
+- The exit code of `raiku bench` matches the benchmark runner's exit code.
+- If no runner binary is found for the language, `raiku bench` prints an actionable message and exits cleanly.
+- The `--count` flag is currently forwarded only for Python runners.
+
+<Warning>
+  Benchmarks can be CPU- and memory-intensive. Avoid running `raiku bench` on shared or low-resource machines during peak usage. Use `--runner` to pass flags like `-bench=BenchmarkFoo` to limit scope.
+</Warning>
+
+## Examples
+
+<CodeGroup>
+
+```bash Benchmark a Rust package (criterion)
+raiku bench blazing-vec
+```
+
+```bash Benchmark a Python package
+raiku bench fast-math
+```
+
+```bash Benchmark a Go package (testing.B)
+raiku bench goqueue
+```
+
+```bash Run with a custom iteration count (Python)
+raiku bench fast-math --count 5000
+```
+
+```bash Override the benchmark runner
+raiku bench blazing-vec --runner "cargo bench -- matrix_multiply"
+```
+
+```bash Benchmark a specific installed version
+raiku bench fast-math --version 1.1.0
+```
+
+</CodeGroup>
+
+## Sample Output
+
+```
+Benchmarking blazing-vec v2.1.0 [Rust] in ~/.raiku/cache/Rust/blazing-vec/2.1.0
+
+  Runner:  cargo bench
+  Command: cargo bench
+
+   Compiling blazing-vec v2.1.0
+    Finished bench [optimized] target(s) in 4.32s
+     Running benches/criterion_bench.rs
+
+dot_product/64          time: [12.345 ns 12.401 ns 12.468 ns]
+dot_product/256         time: [48.123 ns 48.256 ns 48.401 ns]
+matrix_multiply/64x64   time: [1.2345 µs 1.2401 µs 1.2468 µs]
+
+✓ Benchmarks completed for 'blazing-vec'.
+```
+
+<Tip>
+  For reproducible benchmark comparisons, pin the package at a specific version with `raiku pin add PACKAGE VERSION` before benchmarking, then use `--version` to compare results between two pinned versions side by side.
+</Tip>

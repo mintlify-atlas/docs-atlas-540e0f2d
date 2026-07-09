@@ -1,0 +1,204 @@
+---
+title: "Manage Installed Raiku Packages"
+sidebarTitle: "Managing Packages"
+description: "List, update, uninstall, and pin installed Raiku packages. Use raiku outdated to check for newer versions and raiku pin to prevent unwanted updates."
+---
+
+Once packages are installed, Raiku gives you a full set of lifecycle commands to keep your local cache healthy: inspect what's installed with `raiku list`, spot stale versions with `raiku outdated`, apply upgrades with `raiku update`, remove packages with `raiku uninstall`, and lock a package at a specific version with `raiku pin`. Each command is designed to be composable — pipe `--json` output into scripts, use `--dry-run` before making bulk changes, and rely on pins to protect stable installs from accidental upgrades.
+
+---
+
+## Listing Installed Packages
+
+```bash
+raiku list [--language LANG] [--json]
+```
+
+Lists every package currently cached in `~/.raiku/cache/`, showing its name, version, and language. Use `--language` to narrow the output to one ecosystem, or `--json` to get machine-readable output.
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--language` | `-l` | Show only packages for the specified language |
+| `--json` | | Output the full list as a JSON array |
+
+```bash
+# List everything installed
+raiku list
+
+# List only Rust packages
+raiku list --language Rust
+
+# Get JSON output for scripting
+raiku list --json
+```
+
+---
+
+## Checking for Updates
+
+```bash
+raiku outdated [--language LANG] [--json]
+```
+
+Compares your installed package versions against the latest versions recorded in the local index. It does **not** install anything — it only reports what could be updated.
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--language` | `-l` | Limit the check to one language |
+| `--json` | | Output the outdated list as JSON |
+
+```bash
+# Check all installed packages
+raiku outdated
+
+# Check only Go packages
+raiku outdated --language Go
+
+# Parse outdated packages in a script
+raiku outdated --json | jq '.[].name'
+```
+
+When packages are found, the output shows a table with each package's installed version and the latest version available in the index, followed by a hint to run `raiku update`.
+
+---
+
+## Updating Packages
+
+```bash
+raiku update [PACKAGE] [--all] [--dry-run]
+```
+
+Fetches the newest version of one package or all installed packages, then reinstalls them. Version comparison uses semantic versioning — a package is only updated if the index version is strictly greater than the installed version.
+
+| Flag | Description |
+|------|-------------|
+| `PACKAGE` | Name of a specific package to update |
+| `--all` | Update every installed package (respects pins — see below) |
+| `--dry-run` | Show what would be updated without installing anything |
+
+<Tip>
+  Always run `raiku update --all --dry-run` before committing to a bulk update. The dry-run output shows exactly which packages will be upgraded and from which version to which, letting you catch anything unexpected before it changes your environment.
+</Tip>
+
+```bash
+# Update a single package
+raiku update fast-math
+
+# Update everything that has a newer version
+raiku update --all
+
+# Preview what --all would do without making changes
+raiku update --all --dry-run
+```
+
+### Pinned Packages Are Skipped
+
+When `--all` is used, any package that has been pinned with `raiku pin add` is automatically skipped. This means stable dependencies you've pinned are never touched by a bulk update. The output displays a summary line listing the packages that were skipped and the version they are pinned at.
+
+To update a pinned package, first remove its pin:
+
+```bash
+raiku pin remove fast-math
+raiku update fast-math
+```
+
+---
+
+## Uninstalling Packages
+
+```bash
+raiku uninstall PACKAGE [--yes] [--version VER]
+```
+
+Removes a package's cached files from `~/.raiku/cache/`. By default all cached versions of the package are removed; pass `--version` to target a specific version only.
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--yes` | `-y` | Skip the confirmation prompt |
+| `--version` | | Remove only this specific version |
+
+```bash
+# Remove all versions of a package (prompts for confirmation)
+raiku uninstall fast-math
+
+# Remove without prompting — useful in scripts
+raiku uninstall goqueue --yes
+
+# Remove only a specific version, keep others
+raiku uninstall blazing-vec --version 1.0.0
+```
+
+---
+
+## Version Pinning
+
+```bash
+raiku pin add PACKAGE [VERSION] [--reason TEXT]
+raiku pin remove PACKAGE
+raiku pin list
+```
+
+Pinning records a package name and version in `~/.raiku/pins.json`. A pinned package is skipped by `raiku update --all`, protecting it from being upgraded automatically. Pins are purely advisory metadata — they do not affect the cached files themselves.
+
+| Subcommand | Description |
+|------------|-------------|
+| `add PACKAGE [VERSION]` | Pin at `VERSION`; defaults to the currently installed version if omitted |
+| `remove PACKAGE` | Remove the pin, allowing future updates |
+| `list` | Display all pinned packages in a table |
+
+The `--reason` flag lets you attach a short note explaining why the package is pinned. This is stored in `pins.json` and shown by `raiku pin list`, making it easy for teams to understand why a dependency is locked to a particular version.
+
+<Tabs>
+  <Tab title="pin add">
+    ```bash
+    # Pin at the currently installed version
+    raiku pin add fast-math
+
+    # Pin at a specific version with a reason note
+    raiku pin add fast-math 1.0.0 --reason "stable baseline for CI"
+
+    # Pin a Go package
+    raiku pin add goqueue 2.1.0 --reason "API change in 2.2.0 not yet tested"
+    ```
+  </Tab>
+  <Tab title="pin remove">
+    ```bash
+    # Remove a pin — the package can now be updated by raiku update --all
+    raiku pin remove fast-math
+
+    # After removing, update to latest
+    raiku pin remove fast-math && raiku update fast-math
+    ```
+  </Tab>
+  <Tab title="pin list">
+    ```bash
+    # Show all pinned packages with version, pin date, and reason
+    raiku pin list
+    ```
+
+    Example output:
+
+    ```
+    ┌─────────────┬───────────────┬─────────────┬──────────────────────────────┐
+    │ Package     │ Pinned Version│ Pinned Since│ Reason                       │
+    ├─────────────┼───────────────┼─────────────┼──────────────────────────────┤
+    │ fast-math   │ 1.0.0         │ 2025-07-04  │ stable baseline for CI       │
+    │ goqueue     │ 2.1.0         │ 2025-06-20  │ API change in 2.2.0 not yet  │
+    └─────────────┴───────────────┴─────────────┴──────────────────────────────┘
+    2 pinned package(s).
+    ```
+  </Tab>
+</Tabs>
+
+### What Pins Do and Don't Do
+
+| Behaviour | Detail |
+|-----------|--------|
+| **Skipped by `raiku update --all`** | Pinned packages are never touched during a bulk update |
+| **Not skipped by `raiku update <name>`** | Updating a specific package by name always proceeds, even if pinned |
+| **Does not prevent manual reinstall** | `raiku install <package> --force` ignores pins |
+| **Survives cache clears** | Pin data lives in `~/.raiku/pins.json`, not in the cache |
+
+<Note>
+  Pins are a safeguard against accidental bulk upgrades, not a hard lock. If you need to update a pinned package intentionally, either remove the pin first or run `raiku update <package>` directly.
+</Note>

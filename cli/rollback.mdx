@@ -1,0 +1,88 @@
+---
+title: "raiku rollback — Revert a Package to Its Previous Version"
+sidebarTitle: "rollback"
+description: "raiku rollback reverts an installed package to the previously cached version. Requires that the older version is still present in the local cache."
+---
+
+`raiku rollback` lets you instantly revert a package to an older version without touching the network. Because Raiku keeps previous versions in the local cache until they are explicitly evicted, rolling back is as fast as switching which version is active — the old files are already on disk. This makes `raiku rollback` the first tool to reach for when an update introduces a regression.
+
+## Usage
+
+```bash
+raiku rollback PACKAGE [--to VERSION] [--yes]
+```
+
+## Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `PACKAGE` | Yes | The name of the installed package to roll back. |
+
+## Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--to VERSION` | | Roll back to a specific version instead of the previous one. |
+| `--yes` | `-y` | Skip the confirmation prompt. |
+
+## Requirements
+
+The target version **must already be present in your local cache**. Raiku does not re-download during a rollback. You can check which versions are cached with:
+
+```bash
+raiku list
+```
+
+If the version you need is not cached, install it directly:
+
+```bash
+raiku install <package>@<version> --force
+```
+
+## Behavior
+
+1. Lists all cached versions of `PACKAGE`, sorted from newest to oldest.
+2. If `--to` is not provided, selects the second-newest cached version as the rollback target.
+3. Confirms the downgrade with you (unless `--yes` is passed).
+4. Evicts the current (newer) version from the cache, leaving the older version as the active one.
+5. Reports success and prints the version that was removed.
+
+## Examples
+
+<CodeGroup>
+```bash Roll back to the previous version
+raiku rollback fast-math
+```
+
+```bash Roll back to a specific version
+raiku rollback fast-math --to 1.0.0
+```
+
+```bash Roll back without prompting
+raiku rollback fast-math --yes
+```
+</CodeGroup>
+
+### Sample output
+
+```
+  Roll back fast-math: v1.2.0 → v1.1.0
+? Proceed with rollback? [y/N]: y
+
+✓ Rolled back fast-math to v1.1.0.
+  v1.2.0 removed from cache. Reinstall with raiku install fast-math --force.
+```
+
+<Note>
+If only one version of a package is cached, `raiku rollback` will report that there is nothing to roll back to. In that case, use `raiku install <package>@<version> --force` to fetch a specific older version directly from the index.
+</Note>
+
+<Tip>
+If you want to prevent future accidental upgrades after rolling back, pin the package at the restored version:
+
+```bash
+raiku pin add fast-math --reason "v1.2.0 broke FFT performance"
+```
+
+This keeps `raiku update --all` from promoting it again.
+</Tip>

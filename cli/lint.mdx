@@ -1,0 +1,110 @@
+---
+title: "raiku lint — Static Analysis on Package Manifests"
+sidebarTitle: "lint"
+description: "raiku lint performs static analysis on raiku.toml beyond schema validation, checking for style issues, deprecated fields, and recommended best practices."
+---
+
+`raiku lint` is an advisory quality checker that goes beyond the hard schema rules enforced by `raiku validate`. Where `raiku validate` answers the question *"is this package structurally correct?"*, `raiku lint` answers *"is this package well-written?"*. It inspects `raiku.toml`, `version.yml`, and `README.md` for common problems such as placeholder build commands, overly generic names, missing descriptions or licenses, suspicious version/stability combinations, and thin README content. Lint issues are separated into three levels — **error**, **warning**, and **info** — and printed in a structured table so you can address them in priority order.
+
+## Usage
+
+```bash
+raiku lint [--dir PATH] [--strict]
+```
+
+## Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--dir` | `.` | Package directory to lint (defaults to current directory) |
+| `--strict` | `false` | Exit with a non-zero code if any warnings are found |
+
+## Lint Rules
+
+### `raiku.toml` Checks
+
+| Level | Field | Rule |
+|-------|-------|------|
+| Warning | `name` | Name is too generic (e.g. `utils`, `lib`, `core`, `helpers`) |
+| Warning | `description` | No description provided |
+| Info | `description` | Description is very short (under 15 characters) |
+| Warning | `license` | No SPDX license identifier provided |
+| Info | `tags` | No tags defined |
+| Warning | `build_command` | Build command looks like a placeholder (`echo hello`, `make`, `true`, `:`) |
+| Warning | `homepage` | Homepage URL uses HTTP instead of HTTPS |
+| Info | `homepage` | No homepage or repository URL |
+
+### `version.yml` Checks
+
+| Level | Field | Rule |
+|-------|-------|------|
+| Warning | `stability_level` | Version is pre-1.0 but `stability_level` is `stable` |
+| Info | `changelog` | Changelog only contains a generic initial entry |
+| Warning | `changelog` | Changelog is empty |
+
+### `README.md` Checks
+
+| Level | Field | Rule |
+|-------|-------|------|
+| Error | `README.md` | File is missing entirely |
+| Warning | `README.md` | Content is under 50 characters |
+| Info | `README.md` | No `raiku install` command found in the README |
+
+## Lint vs. Validate
+
+| Aspect | `raiku lint` | `raiku validate` |
+|--------|-------------|-----------------|
+| Purpose | Style and best practices | Schema and structural correctness |
+| Blocks publish? | No (unless `--strict`) | Yes |
+| Severity levels | Error, Warning, Info | Error, Warning |
+| Runs in CI? | Optional but recommended | Required |
+
+<Note>
+  A package can pass `raiku validate` and still have lint issues. Always run `raiku lint` before opening a PR to ensure your package meets community quality standards.
+</Note>
+
+## Examples
+
+<CodeGroup>
+
+```bash Lint the package in the current directory
+raiku lint
+```
+
+```bash Lint a package at a specific path
+raiku lint --dir ./UserSub/Go/goqueue
+```
+
+```bash Fail the build if any warnings are present
+raiku lint --strict
+```
+
+</CodeGroup>
+
+## Sample Output
+
+When lint issues are found, `raiku lint` prints a table like this:
+
+```
+ Level    Field            Message
+ ──────── ──────────────── ──────────────────────────────────────────────────────────
+ warning  description      No description provided. Add a short description to ...
+ warning  license          No license specified. Add an SPDX identifier (MIT, ...).
+ info     tags             No tags defined. Tags help users find your package via ...
+ info     homepage         No homepage or repository URL. Consider linking to ...
+ info     changelog        Changelog only has a generic initial entry. Keep it ...
+
+  0 error(s)  3 warning(s)  2 info
+```
+
+When no issues are found, a green panel confirms the clean result:
+
+```
+╭──────────────────────────────────╮
+│  ✓ No lint issues found.         │
+╰──────────────────────────────────╯
+```
+
+<Tip>
+  Use `raiku lint --strict` in CI together with `raiku validate --strict` to enforce both structural correctness and quality standards on every pull request.
+</Tip>

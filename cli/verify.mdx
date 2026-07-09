@@ -1,0 +1,88 @@
+---
+title: "raiku verify — Re-verify a Single Package Hash"
+sidebarTitle: "verify"
+description: "raiku verify re-checks the SHA-256 integrity of one installed package against the index. Use audit to check all packages at once."
+---
+
+`raiku verify` recomputes the SHA-256 hash of a single installed package's `raiku.toml` and compares it against the hash recorded in the index. This is the targeted, single-package equivalent of `raiku audit`. Use it when you want a quick integrity check on one specific package without scanning your entire cache — for example, after copying a cache directory between machines or after a suspicious filesystem event.
+
+## Usage
+
+```bash
+raiku verify PACKAGE
+```
+
+## Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `PACKAGE` | Yes | The name of the installed package to verify. |
+
+## Optional flags
+
+| Flag | Description |
+|------|-------------|
+| `--version VER` | Verify a specific cached version instead of the latest. |
+
+## Behavior
+
+1. Looks up all installed versions of `PACKAGE` in the local cache.
+2. Selects the highest version (or the version specified with `--version`).
+3. Reads `~/.raiku/cache/<Language>/<name>/<version>/raiku.toml` and computes its SHA-256.
+4. Fetches the expected hash from `~/.raiku/index.json`.
+5. Prints both hashes side-by-side and reports pass or fail.
+
+If the index has no recorded hash for this package, verify reports a warning rather than a failure, and suggests running `raiku sync` to refresh the index.
+
+If the hashes do not match, `raiku verify` exits with a non-zero code and prints a remediation command.
+
+## Examples
+
+<CodeGroup>
+```bash Verify a package
+raiku verify fast-math
+```
+
+```bash Verify a specific version
+raiku verify fast-math --version 1.0.0
+```
+</CodeGroup>
+
+### Sample output — pass
+
+```
+  Package:  fast-math v1.2.0 [Python]
+  File:     /home/user/.raiku/cache/Python/fast-math/1.2.0/raiku.toml
+  Actual:   a3c8f1d2e4b7...
+  Expected: a3c8f1d2e4b7...
+
+╭──────────────────────────────────────────────────────────╮
+│ ✓ 'fast-math' v1.2.0 passed integrity check.             │
+╰──────────────────────────────────────────────────────────╯
+```
+
+### Sample output — fail
+
+```
+  Package:  fast-math v1.2.0 [Python]
+  File:     /home/user/.raiku/cache/Python/fast-math/1.2.0/raiku.toml
+  Actual:   b9e2cc41f830...
+  Expected: a3c8f1d2e4b7...
+
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✗ INTEGRITY FAILURE: 'fast-math' v1.2.0                                  │
+│                                                                          │
+│ The cached raiku.toml does not match the hash in the index.              │
+│ The package may have been tampered with after installation.              │
+│                                                                          │
+│ Run: raiku uninstall fast-math --yes && raiku install fast-math          │
+╰──────────────────────────────────────────────────────────────────────────╯
+```
+
+<Note>
+`raiku verify` checks a single package. To scan all installed packages at once, use [`raiku audit`](/cli/audit). To automatically remove and reinstate failing packages, run `raiku audit --fix`.
+</Note>
+
+<Warning>
+A hash mismatch does not necessarily mean a security incident — it could also result from accidental edits, filesystem corruption, or a manual cache copy. Regardless of the cause, the safe remediation is to uninstall and reinstall the package from the index.
+</Warning>

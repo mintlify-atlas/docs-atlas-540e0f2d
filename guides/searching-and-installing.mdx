@@ -1,0 +1,190 @@
+---
+title: "Search and Install Raiku Packages"
+sidebarTitle: "Search & Install"
+description: "Use raiku search to find packages by name, language, or tag, then raiku install to fetch, verify, and build them with dependency resolution."
+---
+
+Raiku's discovery and installation workflow is designed to be fast and safe. The `raiku search` command queries a locally-cached index — populated by `raiku sync` — so results appear instantly without a network round-trip. Once you've found a package, `raiku install` handles everything from dependency resolution and streaming download through SHA-256 verification and build execution, all with a clear step-by-step progress display in your terminal.
+
+## Searching the Index
+
+```bash
+raiku search QUERY [--language LANG] [--tag TAG] [--limit N] [--sort latest]
+```
+
+`raiku search` performs a case-insensitive substring search across package names, descriptions, and authors in the local index. All filtering and sorting happens locally, so there's no need to be online at search time (though you should run `raiku sync` first to ensure the index is current).
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--language` | `-l` | all | Filter results to a single language |
+| `--tag` | `-t` | none | Filter to packages that carry a specific tag |
+| `--limit` | `-n` | `20` | Maximum number of results to display |
+| `--sort` | | `name` | Sort by `name`, `latest` (release date), or `language` |
+
+### Language Aliases
+
+You can pass either the full language name or any recognised short alias to `--language`:
+
+| Full name | Accepted aliases |
+|-----------|-----------------|
+| `Python` | `python`, `py` |
+| `Rust` | `rust`, `rs` |
+| `C++` | `cpp`, `c++` |
+| `C#` | `csharp`, `c#`, `cs` |
+| `Go` | `go`, `golang` |
+| `C` | `c` |
+| `Zig` | `zig` |
+| `Java` | `java` |
+
+### Search Examples
+
+```bash
+# Basic keyword search
+raiku search math
+
+# Filter to a single language using an alias
+raiku search queue --language Go
+raiku search queue --language golang   # alias — same result
+
+# Filter by tag
+raiku search utils --tag collections
+
+# Combined filters, sorted by newest first, limited to 5 results
+raiku search sort --language Python --tag algorithms --sort latest --limit 5
+
+# Widen the result window when the default 20 is not enough
+raiku search vec --limit 50
+```
+
+<Note>
+  If the search returns no results, run `raiku sync` to refresh the local index, then try again. The index is only as current as your last sync.
+</Note>
+
+---
+
+## Installing from the Index
+
+```bash
+raiku install PACKAGE [OPTIONS]
+```
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--trust` | | Skip the interactive build-command confirmation prompt |
+| `--no-build` | | Download and cache only — do not execute the build command |
+| `--force` | `-f` | Reinstall even if the package is already cached |
+| `--no-deps` | | Skip dependency resolution and install only the named package |
+| `--lock` | | Write or update `raiku.lock` in the current directory |
+
+### The Remote Install Flow
+
+When you run `raiku install <package>`, Raiku executes the following sequence:
+
+<Steps>
+  <Step title="Load the local index">
+    Reads `~/.raiku/index.json` to find the package entry — its version, language, repository path, and expected SHA-256 hash.
+  </Step>
+  <Step title="Resolve transitive dependencies">
+    Uses a depth-first topological sort to build a complete, ordered installation list. Dependencies are installed first, with circular dependency chains detected and reported before any files are fetched.
+  </Step>
+  <Step title="Fetch package files">
+    Downloads only the required files (`raiku.toml`, `version.yml`, `README.md`, and `src/`) for each package — no full repository clone is performed. A real-time progress bar shows downloaded bytes and transfer speed.
+  </Step>
+  <Step title="Parse and validate manifests">
+    Parses both `raiku.toml` and `version.yml`, then validates them against the canonical schema in `schemas/schema.yml` using Cerberus. Required fields, version format, language, and stability level are all checked.
+  </Step>
+  <Step title="Verify SHA-256 hash">
+    Computes the SHA-256 hash of the downloaded `raiku.toml` and compares it against the value recorded in the index. A mismatch aborts the install immediately with a security alert.
+  </Step>
+  <Step title="Cache the package">
+    Stores the verified files at `~/.raiku/cache/<Language>/<name>/<version>/` so they are available offline and for future reinstalls without re-downloading.
+  </Step>
+  <Step title="Prompt for build command approval">
+    In safe mode (enabled by default), Raiku displays the package's `build_command` and asks you to approve it before execution. Forbidden shell patterns are scanned and blocked regardless of safe mode. Pass `--trust` or run `raiku trust add <package>` to skip this prompt for packages you've reviewed.
+  </Step>
+  <Step title="Execute the build command">
+    Runs the build command in a restricted subprocess environment with a 300-second hard timeout. The current working directory is set to the package's cache directory.
+  </Step>
+  <Step title="Optionally update raiku.lock">
+    If `--lock` was passed, appends the package's exact version and SHA-256 hash to `raiku.lock` in the current directory. See [Lock Files](/guides/lock-files) for details.
+  </Step>
+  <Step title="Confirm installation">
+    Prints a success summary: package name, version, and language.
+  </Step>
+</Steps>
+
+<Note>
+  **Safe mode prompt:** By default, Raiku shows the build command and waits for your confirmation before running it. To skip this prompt for a package you trust, use `raiku trust add <package>` (persistent) or pass `--trust` (one-time). Safe mode can be disabled globally with `raiku config set safe_mode false`, but this is not recommended unless you audit every package you install.
+</Note>
+
+### Install Examples
+
+```bash
+# Standard install
+raiku install fast-math
+
+# Skip the build prompt (one-time trust)
+raiku install goqueue --trust
+
+# Download and cache only — useful for offline review
+raiku install blazing-vec --no-build
+
+# Force a reinstall of an already-cached package
+raiku install cmatrix --force
+
+# Install and record the exact version in raiku.lock
+raiku install fast-math --lock
+
+# Install without pulling in any dependencies
+raiku install my-pkg --no-deps
+```
+
+---
+
+## Installing from a Local Path
+
+```bash
+raiku install ./local-path [OPTIONS]
+```
+
+Raiku detects a local install when the argument starts with `./`, `.\\`, or resolves to an existing directory on disk. Local installs do not require a network connection or an index entry — the package is validated directly from the filesystem.
+
+The local install flow validates `raiku.toml` and `version.yml` using the same schema and rules checks as a remote install, then copies the files into the cache and runs the build command. Local installs are ideal for testing a package you're developing before submitting it.
+
+```bash
+# Install a package you're working on locally
+raiku install ./my-new-package
+
+# Install locally but skip the build step
+raiku install ./my-new-package --no-build
+
+# Record the local install in raiku.lock
+raiku install ./my-new-package --lock
+```
+
+---
+
+## Dependency Resolution
+
+Raiku's resolver performs a **depth-first topological sort** over the dependency graph declared in each package's `raiku.toml` (`dependencies = [...]` field). Dependencies are resolved and installed in order so every package's prerequisites are present before it is built.
+
+### How Transitive Dependencies Work
+
+If package `A` depends on `B` and `B` depends on `C`, the install order is `C → B → A`. The resolver walks the full dependency graph recursively, deduplicates packages that appear more than once, and always installs the deepest dependencies first.
+
+```bash
+# Example: installing a package with transitive deps
+raiku install fast-math
+#   Dependencies: base-math, core-utils
+#   → Installs core-utils first, then base-math, then fast-math
+```
+
+### Circular Dependency Detection
+
+If the resolver finds a cycle — for example `A → B → A` — it aborts the install immediately and prints the full cycle path:
+
+```
+Dependency error: Circular dependency detected: A → B → A
+```
+
+Use `--no-deps` to bypass resolution entirely and install only the named package. This is useful if you are managing dependencies manually or if a circular dependency in the index affects a package you need.

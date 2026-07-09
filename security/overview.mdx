@@ -1,0 +1,226 @@
+---
+title: "Raiku Security Model: Nine Layers of Protection"
+sidebarTitle: "Security Overview"
+description: "Raiku protects installs with schema validation, forbidden pattern scanning, SHA-256 hash verification, safe mode approval, restricted subprocess environments, and build timeouts."
+---
+
+Raiku is a community-driven repository, which means any contributor can submit a package containing a `build_command` that runs on your machine. That openness demands a principled security model. The threat landscape Raiku is designed to address includes **malicious build commands** (destructive or data-exfiltrating shell instructions embedded in `build_command`), **package tampering** (files modified in transit or after installation), **supply-chain substitution** (a legitimate package replaced with a malicious one), **runaway builds** (commands that loop indefinitely or exhaust system resources), and **post-install corruption** (a cached package silently altered after first verification). Raiku meets these threats with nine independent, layered defences — each one described in full below.
+
+---
+
+## The Nine Defence Layers
+
+### Layer 1 — Schema Validation
+
+<Note>
+  **Trigger:** Before any file is downloaded. **Library:** Cerberus. **Effect:** Packages with malformed metadata never reach the download stage.
+</Note>
+
+Before Raiku fetches a single byte of package content, it validates the index entry against a strict Cerberus schema. Every required field (`name`, `version`, `language`, `author`, `build_command`) must be present, correctly typed, and within defined length bounds. The `name` field must match the pattern `^[a-zA-Z0-9_\-]+$` with a maximum of 64 characters. The `version` field must follow Semantic Versioning (`MAJOR.MINOR.PATCH`). The `language` field must be one of the eight supported values. Any entry that fails schema validation is rejected before a network connection is opened.
+
+### Layer 2 — Forbidden Pattern Scan
+
+<Warning>
+  **This check runs even with `--trust` and even for packages in `~/.raiku/trusted.json`.** The forbidden pattern list cannot be bypassed by any flag or configuration.
+</Warning>
+
+Every `build_command` is scanned for a hard-coded blocklist of dangerous patterns before any execution begins. The full list of forbidden patterns, taken directly from the Raiku schema and enforced in code, is:
+
+| Pattern | Reason |
+|---------|--------|
+| `rm -rf` | Destructive filesystem wipe |
+| `rmdir /s` | Windows recursive directory removal |
+| `del /f` | Windows forced file deletion |
+| `format ` | Disk formatting |
+| `:(){:\|:&};:` | Fork bomb |
+| `dd if=` | Raw disk write |
+| `mkfs` | Filesystem creation |
+| `wget http://` | Unencrypted network fetch |
+| `curl http://` | Unencrypted network fetch |
+| `> /dev/sd` | Raw device write |
+| `chmod 777` | Dangerous permission escalation |
+| `sudo rm` | Privileged destructive deletion |
+| `DROP TABLE` | SQL injection attempt |
+| `__import__` | Python dynamic import injection |
+| `exec(` | Arbitrary code execution |
+| `eval(` | Arbitrary code evaluation |
+| `os.system` | Indirect OS command execution |
+| `subprocess.call` | Indirect subprocess execution |
+| `subprocess.Popen` | Indirect subprocess execution |
+
+Any match immediately aborts installation with a `BuildError` and prints a message instructing the user to report the package to the Raiku maintainers.
+
+### Layer 3 — SHA-256 Hash Verification
+
+<Note>
+  **Trigger:** After download, before writing to cache. **Algorithm:** SHA-256. **Effect:** A hash mismatch aborts installation and nothing is written to disk.
+</Note>
+
+`index.json` records the SHA-256 hex digest of each package's `raiku.toml` file. After Raiku downloads the manifest, it recomputes the digest and compares it to the recorded value. A mismatch raises a `HashMismatchError` and aborts installation with a `[Security alert]` message showing both the expected and actual digests:
+
+```text
+Hash mismatch for 'fast-math':
+  expected : <value from index.json>
+  actual   : <computed from downloaded bytes>
+The package may be corrupt or tampered with. Installation aborted.
+```
+
+Files are never written to the local cache when a hash mismatch occurs. Packages that have no recorded `sha256` field in `index.json` trigger a visible warning but are not blocked — this accommodates local and in-development packages. The `sha256` field is strongly recommended for all published packages.
+
+### Layer 4 — Post-Install Audit
+
+<Note>
+  **Trigger:** On-demand via `raiku audit`. **Effect:** Re-verifies all cached packages against the index, evicting any that fail.
+</Note>
+
+The initial hash check at download time covers tampering in transit, but a cached package can be altered after installation. Running `raiku audit` re-verifies every package currently in the local cache against the hashes recorded in `index.json`. Packages that fail re-verification are flagged. The `--fix` flag automatically evicts failures so they can be cleanly reinstalled:
+
+```bash
+raiku audit          # verify all cached packages
+raiku audit --fix    # evict packages that fail verification
+```
+
+Run `raiku audit` periodically — particularly after any unexpected filesystem activity — to confirm the integrity of your installed packages.
+
+### Layer 5 — Safe Mode (Interactive Approval)
+
+<Note>
+  **Default:** `safe_mode = true`. **Effect:** Raiku shows the exact `build_command` and requires explicit `y` confirmation before execution.
+</Note>
+
+In the default `safe_mode = true` configuration, Raiku always displays the full `build_command` before running it and waits for user approval:
+
+```text
+  Build command: pip install -e .
+  Run this build command for 'fast-math'? [y/N]:
+```
+
+The command does not execute until the user types `y`. Typing anything else — or pressing Enter — cancels the build. This applies to both remote and local installs.
+
+Per-install bypass is available via `raiku install <pkg> --trust`. The `--trust` flag skips the confirmation prompt **but does not bypass Layer 2** — the forbidden pattern scan always runs.
+
+### Layer 6 — Persistent Trust System
+
+<Note>
+  **Storage:** `~/.raiku/trusted.json`. **Scope:** Per-machine. **Grant:** Always explicit — never automatic.
+</Note>
+
+Rather than passing `--trust` on every install, you can mark a reviewed package as persistently trusted. Trusted packages skip the confirmation prompt automatically on all future installs on that machine:
+
+```bash
+raiku trust add fast-math --reason "reviewed source, MIT license"
+raiku trust remove fast-math
+raiku trust list
+raiku trust clear
+raiku trust clear --yes    # skip the confirmation prompt
+```
+
+Trust is always an explicit, deliberate user action. The `auto_trust` configuration key exists but defaults to `false`, and changing it to `true` is strongly discouraged. Trusted status is stored locally and is never shared or propagated.
+
+### Layer 7 — Restricted Subprocess Environment
+
+<Note>
+  **Effect:** Build commands inherit only a safe, minimal set of environment variables. All secrets, API keys, and session tokens are stripped.
+</Note>
+
+Build commands execute in a subprocess that does **not** inherit the full user environment. Only the following variables are forwarded from the host:
+
+```text
+PATH, HOME, USER, LOGNAME, LANG, LC_ALL, TERM
+SYSTEMROOT, WINDIR, COMSPEC, USERPROFILE, APPDATA, LOCALAPPDATA, TEMP, TMP
+CARGO_HOME, RUSTUP_HOME, GOPATH, GOROOT, JAVA_HOME, DOTNET_ROOT, ZIG_HOME
+```
+
+All other environment variables — including `AWS_SECRET_ACCESS_KEY`, `GITHUB_TOKEN`, shell session tokens, database passwords, and any other secrets present in the host environment — are stripped before the subprocess launches. The variable `RAIKU_PKG_DIR` is additionally injected and points to the cached package directory.
+
+### Layer 8 — Build Timeout
+
+<Note>
+  **Limit:** 300 seconds (5 minutes). **Effect:** Build subprocess is killed if it exceeds the timeout.
+</Note>
+
+The `BuildRunner` enforces a hard 300-second timeout on every build command. If the process does not complete within that window, Raiku raises a `BuildError`:
+
+```text
+Build for 'fast-math' timed out after 300s.
+```
+
+This prevents runaway builds from hanging the terminal, consuming excessive CPU or memory, or being used as a denial-of-service vector. The timeout value matches the 300-second limit stated in Raiku's package rules.
+
+### Layer 9 — Pin System
+
+<Note>
+  **Effect:** Pinned packages are skipped by `raiku update --all` and can only be updated with an explicit `--force`.
+</Note>
+
+Once you have verified a package version is stable, you can pin it to prevent accidental updates:
+
+```bash
+raiku pin add fast-math --reason "stable baseline for production"
+```
+
+Pinned packages are excluded from `raiku update --all`. Updating a pinned package requires an explicit, intentional command:
+
+```bash
+raiku install fast-math --force
+```
+
+---
+
+## Configuration Security Defaults
+
+The two security-relevant configuration keys and their defaults:
+
+| Setting | Default | Meaning |
+|---------|---------|---------|
+| `safe_mode` | `true` | Always show `build_command` and prompt for approval before execution |
+| `auto_trust` | `false` | Never silently mark a package as trusted; trust is always explicit |
+
+<Warning>
+  Changing `safe_mode = false` or `auto_trust = true` is **strongly discouraged** unless you are operating in a fully trusted, isolated environment. Both settings emit a visible warning when changed. Do not disable these protections in shared or production environments.
+
+  ```bash
+  raiku config set safe_mode false    # WARNING: disables build confirmation
+  raiku config set auto_trust true    # WARNING: silently runs all build commands
+  ```
+</Warning>
+
+---
+
+## What Raiku Does NOT Protect Against
+
+Raiku's security model is explicit about its boundaries. The following threats are **outside** the scope of what Raiku can detect or prevent:
+
+- **Malicious source code** — Raiku validates package structure and build commands, not the semantic behaviour of your source files. Always read the code before you use it.
+- **Compromised GitHub** — If the upstream repository or GitHub's raw content delivery network is compromised at the hosting level, SHA-256 hash verification (Layer 3) provides the last line of defence, but only if the index's recorded hashes are themselves uncompromised.
+- **Compromised build tools** — If `cargo`, `pip`, `go`, `javac`, `dotnet`, or any other build toolchain installed on your machine has been tampered with, Raiku cannot detect it.
+- **Typosquatting** — `fast-maths` is not `fast-math`. Raiku cannot prevent a malicious actor from publishing a package with a name that closely resembles a legitimate one. Always verify the exact package name before installing.
+
+---
+
+## Reporting a Security Vulnerability
+
+<Warning>
+  Do **not** open a public GitHub issue for security vulnerabilities. Public disclosure before a fix is available puts all Raiku users at risk.
+</Warning>
+
+To report a vulnerability privately, open a security advisory at:
+
+**[https://github.com/SGizek/Raiku/security/advisories/new](https://github.com/SGizek/Raiku/security/advisories/new)**
+
+Please include the following in your report:
+
+<Steps>
+  <Step title="Describe the vulnerability">
+    A clear description of the issue, including which component is affected and what an attacker could achieve.
+  </Step>
+  <Step title="Provide reproduction steps">
+    Step-by-step instructions sufficient to reproduce the issue from scratch.
+  </Step>
+  <Step title="Assess the potential impact">
+    Your assessment of the severity and the conditions under which the vulnerability is exploitable.
+  </Step>
+  <Step title="Suggest a fix (optional)">
+    If you have a proposed patch or mitigation, include it. This is optional but appreciated.
+  </Step>
+</Steps>

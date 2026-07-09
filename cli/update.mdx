@@ -1,0 +1,52 @@
+---
+title: "raiku update — Upgrade Installed Packages"
+sidebarTitle: "update"
+description: "raiku update checks the index for newer versions and reinstalls them. Pinned packages are always skipped. Use --dry-run to preview before updating."
+---
+
+`raiku update` compares the version of each installed package against the latest version recorded in the local index and reinstalls any package where a newer version is available. You can target a single package by name or update everything at once with `--all`. The command respects the pin list managed by `raiku pin` — any package that has been pinned is silently skipped during a bulk `--all` update. Before committing to actual downloads, run with `--dry-run` to get a preview table of what would change.
+
+## Usage
+
+```bash
+raiku update [PACKAGE] [--all] [--dry-run]
+```
+
+## Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `PACKAGE` | | Name of the specific package to update (positional, optional) |
+| `--all` | | Update every installed package that has a newer version in the index |
+| `--dry-run` | | Print the update table but do not download or install anything |
+
+## Behavior
+
+- **Version comparison** uses semantic versioning. A package is considered outdated when the index version is strictly greater than the installed version. Packages whose version string cannot be parsed are left untouched and reported as up to date.
+- **Pinned packages** — Any package added to the pin list via `raiku pin add` is skipped when `--all` is used. A summary line lists how many pinned packages were skipped. Pinned packages are still updated when targeted explicitly by name (e.g. `raiku update fast-math`), unless also blocked by their pinned version matching the index.
+- **Update process** — Each outdated package is evicted from the cache and then reinstalled via the standard install flow, which re-fetches files, re-verifies the SHA-256 hash, and re-runs the build command.
+- **Index must be loaded** — If `~/.raiku/index.json` is missing, the command exits with an error and suggests running `raiku sync`.
+
+## Examples
+
+<CodeGroup>
+```bash Update a single package
+raiku update fast-math
+```
+
+```bash Update all installed packages
+raiku update --all
+```
+
+```bash Preview what would be updated
+raiku update --all --dry-run
+```
+</CodeGroup>
+
+<Tip>
+  Always run `raiku update --all --dry-run` first to review the full list of changes before applying them. This is especially useful in CI environments where unexpected version changes could affect reproducibility.
+</Tip>
+
+<Note>
+  To update a **pinned** package, unpin it first with `raiku pin remove <package>`, then run `raiku update <package>`, or use `raiku install <package> --force` to bypass the version check entirely.
+</Note>

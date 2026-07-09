@@ -1,0 +1,114 @@
+---
+title: "raiku completion — Generate Shell Tab-Completion Scripts"
+sidebarTitle: "completion"
+description: "raiku completion generates tab-completion scripts for bash, zsh, fish, or PowerShell. Use --install to auto-append to your shell config file."
+---
+
+`raiku completion` generates shell integration scripts that enable tab-completion for Raiku commands, subcommands, and flags. Once installed, pressing <kbd>Tab</kbd> while typing a `raiku` command will suggest matching command names and options. The `--install` flag handles appending the script to your shell configuration file automatically — or you can capture the output and manage it manually.
+
+## Usage
+
+```bash
+raiku completion SHELL [--install]
+```
+
+## Arguments
+
+| Argument | Required | Values |
+|----------|----------|--------|
+| `SHELL` | Yes | `bash`, `zsh`, `fish`, `powershell` |
+
+## Flags
+
+| Flag | Description |
+|------|-------------|
+| `--install` | Automatically write or append the completion script to the appropriate shell config file. |
+
+## Install paths
+
+| Shell | Auto-install destination |
+|-------|--------------------------|
+| `bash` | `~/.bashrc` |
+| `zsh` | `~/.zshrc` |
+| `fish` | `~/.config/fish/completions/raiku.fish` (file is created/replaced) |
+| `powershell` | `$PROFILE` (your PowerShell profile script) |
+
+For `bash` and `zsh`, Raiku appends a marked block to the config file and skips the append if the marker is already present (idempotent). For `fish`, it writes a dedicated completion file. For PowerShell, it appends to `$PROFILE`.
+
+## Generated snippets
+
+The completion scripts use Click's built-in completion mechanism:
+
+<Tabs>
+  <Tab title="bash">
+    ```bash
+    eval "$(_RAIKU_COMPLETE=bash_source raiku)"
+    ```
+  </Tab>
+  <Tab title="zsh">
+    ```bash
+    eval "$(_RAIKU_COMPLETE=zsh_source raiku)"
+    ```
+  </Tab>
+  <Tab title="fish">
+    ```fish
+    _RAIKU_COMPLETE=fish_source raiku | source
+    ```
+  </Tab>
+  <Tab title="PowerShell">
+    ```powershell
+    $env:_RAIKU_COMPLETE = "powershell_source"
+    & raiku | Invoke-Expression
+    Remove-Item Env:_RAIKU_COMPLETE
+    ```
+  </Tab>
+</Tabs>
+
+## Examples
+
+<CodeGroup>
+```bash Auto-install for bash
+raiku completion bash --install
+# ✓ Completion installed to /home/user/.bashrc
+# Restart your shell or run: source ~/.bashrc
+```
+
+```bash Auto-install for zsh
+raiku completion zsh --install
+```
+
+```bash Auto-install for fish
+raiku completion fish --install
+# ✓ Fish completion written to /home/user/.config/fish/completions/raiku.fish
+```
+
+```bash Auto-install for PowerShell
+raiku completion powershell --install
+```
+
+```bash Manual install — bash
+raiku completion bash >> ~/.bashrc && source ~/.bashrc
+```
+
+```bash Manual install — zsh
+raiku completion zsh >> ~/.zshrc
+```
+
+```bash Print the script without installing
+raiku completion bash
+```
+</CodeGroup>
+
+<Tip>
+After running `raiku completion bash --install` (or zsh), you need to reload your shell for the changes to take effect:
+
+```bash
+source ~/.bashrc   # or: exec bash
+```
+
+For fish, new shell sessions pick up the completion automatically — no reload needed.
+</Tip>
+
+<Note>
+The `--install` flag is idempotent for `bash` and `zsh`: if the completion block is already present in your config file, running `raiku completion bash --install` again will print a notice and skip the append rather than duplicating the entry.
+</Note>

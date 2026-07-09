@@ -1,0 +1,91 @@
+---
+title: "Raiku CLI Command Reference"
+sidebarTitle: "Overview"
+description: "Complete reference for the Raiku CLI. Global options apply to every command. Commands are grouped into package operations, authoring, inspection, maintenance, and configuration."
+---
+
+Raiku is a community-driven, Git-based, multi-language package manager that works across Python, Rust, C, C++, Zig, Java, C#, and Go. Every operation flows through the `raiku` command-line tool, which reads a local index file, manages a cache under `~/.raiku/`, and delegates build steps to each language's native toolchain. This page lists all available commands and the global options that apply to every one of them.
+
+## Global Options
+
+These flags may be placed before any subcommand and affect the entire invocation.
+
+| Option | Short | Description |
+|---|---|---|
+| `--version` | | Print the Raiku version string and exit |
+| `--verbose` | `-v` | Enable verbose/debug output for every operation |
+| `--no-color` | | Disable all ANSI color codes in output |
+| `--help` | | Show help text for the command and exit |
+
+## All Commands
+
+| Command | Description |
+|---|---|
+| `sync` | Fetch the latest `index.json` from GitHub and store it locally |
+| `search` | Search the local index by name, description, or author |
+| `install` | Fetch, verify, and cache a package (or install from a local path) |
+| `uninstall` | Remove one or all versions of a package from the local cache |
+| `update` | Check the index for newer versions and reinstall them |
+| `outdated` | List installed packages that have newer versions in the index |
+| `list` | Show all packages currently installed in `~/.raiku/cache/` |
+| `info` | Show full metadata for a package from the index |
+| `init` | Scaffold a new Raiku package with an interactive wizard |
+| `publish` | Validate a package and print the JSON entry + PR instructions |
+| `validate` | Check one or all packages against schema and structural rules |
+| `audit` | Verify SHA-256 hashes of all cached packages against the index |
+| `verify` | Verify the integrity of a single installed package |
+| `stats` | Show ecosystem-wide and local cache statistics |
+| `pin add` | Pin a package at a specific version to prevent updates |
+| `pin remove` | Remove a pin, allowing future updates |
+| `pin list` | Show all currently pinned packages |
+| `trust add` | Mark a package's build command as trusted |
+| `trust remove` | Revoke trust from a package |
+| `trust list` | Show all trusted packages |
+| `trust clear` | Remove all trusted packages |
+| `config list` | Show all Raiku configuration values |
+| `config get` | Print the current value of a single config key |
+| `config set` | Update a config key and save to `~/.raiku/config.toml` |
+| `config reset` | Restore all configuration to defaults |
+| `index --rebuild` | Scan `UserSub/` and regenerate `index/index.json` |
+| `index --stats` | Show package count, language breakdown, and sync time |
+| `index --check` | Validate every entry path and hash in the index |
+| `cache --info` | Show cache disk usage, package count, and path |
+| `cache --clear` | Wipe the entire local package cache |
+| `doctor` | Check that all required language build tools are installed |
+| `completion` | Generate shell completion scripts |
+| `run` | Run a command inside an installed package directory |
+| `from-lock` | Install exact versions pinned in `raiku.lock` |
+| `diff` | Compare the installed version of a package with the latest |
+| `test` | Run the test suite of an installed package |
+| `why` | Explain why a package is installed (dependency chain) |
+| `graph` | Print the full dependency graph |
+| `export` | Export installed packages to `requirements.raiku` |
+| `import` | Install packages listed in `requirements.raiku` |
+| `rollback` | Roll back a package to its previously installed version |
+| `login` | Store a GitHub token for publishing |
+| `whoami` | Show the currently authenticated GitHub user |
+| `logout` | Remove the stored GitHub token |
+| `lint` | Lint a package's source files |
+| `bench` | Run benchmarks for an installed package |
+| `repair` | Attempt to repair a broken or partially cached package |
+| `upgrade` | Upgrade the Raiku CLI itself |
+
+## Command Sections
+
+<CardGroup cols={2}>
+  <Card title="Package Operations" icon="box" href="/cli/sync">
+    Core day-to-day commands: sync, search, install, uninstall, update, and outdated.
+  </Card>
+  <Card title="Package Authoring" icon="pen-to-square" href="/cli/install">
+    Commands for creating, validating, and publishing packages: init, validate, publish.
+  </Card>
+  <Card title="Inspection & Utilities" icon="magnifying-glass" href="/cli/search">
+    Explore what is installed and why: list, info, outdated, diff, why, graph.
+  </Card>
+  <Card title="Maintenance" icon="wrench" href="/cli/update">
+    Keep your cache healthy: audit, verify, repair, rollback, doctor.
+  </Card>
+  <Card title="Configuration & Tools" icon="gear" href="/cli/outdated">
+    Manage settings, trust, pins, completions, and authentication: config, trust, pin, completion, login.
+  </Card>
+</CardGroup>

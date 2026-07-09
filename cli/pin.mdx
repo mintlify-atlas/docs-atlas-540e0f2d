@@ -1,0 +1,90 @@
+---
+title: "raiku pin — Prevent Packages from Auto-Updating"
+sidebarTitle: "pin"
+description: "raiku pin add locks a package at its current version, preventing raiku update --all from upgrading it. Manage pins with add, remove, and list subcommands."
+---
+
+`raiku pin` lets you lock a package at a specific version so that `raiku update --all` skips it entirely. Pinning is useful whenever a package serves as a stable baseline — a library whose API your code depends on, a toolchain at a known-good version, or a package you are evaluating before committing to an upgrade. Pins are recorded in `~/.raiku/pins.json` and persist across sessions.
+
+## Usage
+
+```bash
+raiku pin add PACKAGE [VERSION] [--reason TEXT]
+raiku pin remove PACKAGE
+raiku pin list
+```
+
+## Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `add PACKAGE [VERSION]` | Pin PACKAGE at VERSION. If VERSION is omitted, the currently installed version is used. |
+| `remove PACKAGE` | Remove the pin from PACKAGE, allowing future updates. |
+| `list` | Show all currently pinned packages with version, date, and reason. |
+
+## Flags for `add`
+
+| Flag | Description |
+|------|-------------|
+| `--reason TEXT` | Optional note stored alongside the pin explaining why it was created. |
+
+## Behavior
+
+- **Pinned packages are skipped by `raiku update --all`.** Raiku will print a notice that the package is pinned and move on.
+- **Pinned packages can still be updated explicitly** by naming them directly (`raiku update fast-math`) and using `--force` if needed.
+- **The pin stores the version string** at the time `pin add` is called. If you later install a different version manually, you may want to re-pin with the new version.
+- **Pin storage:** `~/.raiku/pins.json` — a JSON file keyed by lowercase package name containing the pinned version, timestamp, and optional reason.
+
+## Examples
+
+<CodeGroup>
+```bash Pin at the currently installed version
+raiku pin add fast-math
+```
+
+```bash Pin at a specific version with a reason
+raiku pin add fast-math 1.0.0 --reason "stable baseline for prod"
+```
+
+```bash Remove a pin
+raiku pin remove fast-math
+```
+
+```bash List all pins
+raiku pin list
+```
+</CodeGroup>
+
+### Sample `raiku pin list` output
+
+```
+ Package      Pinned Version  Pinned Since  Reason
+ ─────────────────────────────────────────────────────────────────
+ fast-math    1.0.0           2024-10-05    stable baseline for prod
+ goqueue      0.9.1           2024-09-18    —
+
+2 pinned package(s).
+```
+
+### Pin storage format (`~/.raiku/pins.json`)
+
+```json
+{
+  "pins": {
+    "fast-math": {
+      "name": "fast-math",
+      "version": "1.0.0",
+      "reason": "stable baseline for prod",
+      "pinned_at": 1728086400
+    }
+  }
+}
+```
+
+<Tip>
+Pin packages that serve as integration baselines before running `raiku update --all`. This way you can update the majority of your packages safely without risking regressions in the packages that matter most. Add a `--reason` to document your intent for future reference.
+</Tip>
+
+<Note>
+Pins are per-machine — they live in `~/.raiku/pins.json` and are not committed to source control. If you want reproducible installs across machines, use [`raiku from-lock`](/cli/from-lock) with a committed `raiku.lock` file instead of relying solely on pins.
+</Note>

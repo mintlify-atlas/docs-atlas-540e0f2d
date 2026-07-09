@@ -1,0 +1,86 @@
+---
+title: "raiku validate — Check Package Schema and Structure"
+sidebarTitle: "validate"
+description: "raiku validate checks a package directory against schema rules, naming conventions, version consistency, and security constraints. Run before every publish."
+---
+
+`raiku validate` is the authoritative correctness gate for any Raiku package. It parses both `raiku.toml` and `version.yml`, runs every schema rule, checks structural requirements, enforces security constraints on the build command, and reports each finding with a severity level. A package that passes `raiku validate` with zero errors is guaranteed to be accepted by `raiku publish`. The `--all` flag lets maintainers validate every package in the `UserSub/` tree in a single pass, making it practical to run in CI pipelines against the whole repository.
+
+## Usage
+
+```bash
+raiku validate [--dir PATH] [--all] [--language LANG] [--strict]
+```
+
+## Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--dir` | — | `.` | Package directory to validate |
+| `--all` | — | `false` | Validate all packages found under `UserSub/` |
+| `--language` | `-l` | all | When combined with `--all`, limit validation to one language |
+| `--strict` | — | `false` | Exit with a non-zero code if any warnings are found (not just errors) |
+
+## Validation Checks
+
+| Check | Severity |
+|-------|----------|
+| `raiku.toml` exists and parses without errors | Error |
+| `version.yml` exists and parses without errors | Error |
+| All required fields are present and have valid types | Error |
+| `language` is one of the eight supported values | Error |
+| `version` is a valid semantic version string | Error |
+| `stability_level` is a recognised value | Error |
+| `version` in `raiku.toml` matches `version` in `version.yml` | Error |
+| `src/` directory exists and contains at least one file | Error |
+| No forbidden file types appear in the package root | Error |
+| Build command does not contain forbidden shell patterns | Error |
+| Package name matches the allowed naming pattern | Error |
+| `README.md` exists | Warning |
+
+<Note>
+  **Errors** block submission entirely. **Warnings** are reported but do not cause `raiku validate` to exit non-zero unless `--strict` is passed.
+</Note>
+
+## Behavior
+
+When validating a single directory (the default), `raiku validate` prints a colour-coded panel showing every error and warning it found, or a green **PASSED** panel if the package is clean.
+
+When `--all` is used, it walks `UserSub/<Language>/<package>/` for every supported language (or just the requested one) and renders a summary table with **PASS / WARN / FAIL** status for each package. Packages that fail are expanded below the table with their individual error messages.
+
+<Warning>
+  The security check on `build_command` scans for shell injection patterns and known dangerous constructs. Packages with flagged build commands cannot be published to the index.
+</Warning>
+
+## Examples
+
+<CodeGroup>
+
+```bash Validate current directory
+raiku validate
+```
+
+```bash Validate a specific package path
+raiku validate --dir ./UserSub/Python/fast-math
+```
+
+```bash Validate all packages in the repository
+raiku validate --all
+```
+
+```bash Validate all Rust packages and fail on warnings
+raiku validate --all --language Rust --strict
+```
+
+</CodeGroup>
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | All checks passed (or only warnings, without `--strict`) |
+| `1` | One or more errors found, or warnings found with `--strict` |
+
+<Tip>
+  Add `raiku validate --all --strict` as a step in your GitHub Actions workflow to catch regressions before they land on the main branch.
+</Tip>

@@ -1,0 +1,97 @@
+---
+title: "raiku install — Fetch, Verify, and Build a Package"
+sidebarTitle: "install"
+description: "raiku install fetches a package from the index or local path, resolves dependencies, verifies SHA-256, and runs the build command with safe-mode approval."
+---
+
+`raiku install` is the primary way to add a package to your local Raiku cache. For remote packages it looks up the package in `~/.raiku/index.json`, resolves its transitive dependencies, fetches only the required files (not a full repository clone) with real byte-level progress bars, validates both manifests against the schema, verifies the SHA-256 hash of `raiku.toml`, caches everything under `~/.raiku/cache/<Language>/<name>/<version>/`, and finally runs the package's build command — prompting you for approval in safe mode. You can also point `raiku install` at a local directory path to install a package from disk without touching the network.
+
+## Usage
+
+<CodeGroup>
+```bash Remote package
+raiku install PACKAGE [OPTIONS]
+```
+
+```bash Local path
+raiku install ./local-path [OPTIONS]
+```
+</CodeGroup>
+
+## Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--trust` | | Skip the interactive build command confirmation prompt |
+| `--no-build` | | Download and cache the package only; do not run `build_command` |
+| `--force` | `-f` | Reinstall even if the package is already present in the cache |
+| `--no-deps` | | Skip transitive dependency resolution and installation |
+| `--lock` | | Write or update `raiku.lock` in the current working directory |
+
+## Remote Install Flow
+
+Every remote installation follows these nine steps in order:
+
+1. **Load index** — Read `~/.raiku/index.json` and locate the package entry.
+2. **Resolve dependencies** — Walk the dependency graph and collect transitive dependencies. Each dependency is installed first, in topological order. Skipped when `--no-deps` is set.
+3. **Fetch files** — Download `raiku.toml`, `version.yml`, and `README.md` from the `raw_base_url` configured in `~/.raiku/config.toml`. Real-time progress bars show bytes downloaded, transfer speed, and estimated time remaining.
+4. **Schema validation** — Parse and validate both `raiku.toml` and `version.yml` against the Raiku manifest schema, ensuring all required fields are present and correctly typed.
+5. **Hash verification** — Compute the SHA-256 hash of the downloaded `raiku.toml` and compare it against the value declared in the index entry. A mismatch aborts the install with a security alert.
+6. **Cache** — Store all fetched files at `~/.raiku/cache/<Language>/<name>/<version>/`.
+7. **Safe-mode prompt** — Display the `build_command` declared in `raiku.toml` and ask for confirmation before running it, unless the package is already in the trusted list or `--trust` is passed.
+8. **Build** — Execute the build command in a restricted subprocess inside the package's cache directory, with a 300-second timeout.
+9. **Lock file** — If `--lock` is set, add the resolved package entry to `raiku.lock` in the current directory.
+
+## Local Install
+
+When the `PACKAGE` argument starts with `./`, `.\\`, or resolves to an existing directory path, Raiku performs a local install:
+
+- Validates `raiku.toml` and `version.yml` in the target directory against the schema.
+- Runs the rules checker to catch forbidden file types and dangerous build command patterns.
+- Copies the manifest files into the cache at the appropriate path.
+- Runs the build command (subject to the same safe-mode prompt and `--no-build` flag).
+- Does **not** require a network connection or an index entry.
+
+## Examples
+
+<CodeGroup>
+```bash Install a package by name
+raiku install fast-math
+```
+
+```bash Skip the build prompt (already reviewed)
+raiku install goqueue --trust
+```
+
+```bash Cache only, no build step
+raiku install blazing-vec --no-build
+```
+
+```bash Force a reinstall
+raiku install cmatrix --force
+```
+
+```bash Install and write a lock file
+raiku install fast-math --lock
+```
+
+```bash Install from a local directory
+raiku install ./my-new-package
+```
+
+```bash Local install without building
+raiku install ./my-new-package --no-build
+```
+
+```bash Install without pulling in dependencies
+raiku install big-lib --no-deps
+```
+</CodeGroup>
+
+<Note>
+  **Safe mode** is enabled by default (`safe_mode = true` in `~/.raiku/config.toml`). When active, Raiku always shows the `build_command` and asks for confirmation before executing it. You can permanently trust a package with `raiku trust add <package>` to skip the prompt on future installs.
+</Note>
+
+<Warning>
+  Passing `--trust` skips the interactive confirmation prompt but does **not** bypass the forbidden-pattern scanner. Build commands containing shell escapes, network calls, or other prohibited patterns are still blocked regardless of the trust flag.
+</Warning>

@@ -1,0 +1,80 @@
+---
+title: "raiku audit — Verify Cached Package Integrity"
+sidebarTitle: "audit"
+description: "raiku audit re-verifies SHA-256 hashes of all cached packages against the index, detecting tampering or corruption. Use --fix to evict failed packages."
+---
+
+`raiku audit` scans every package installed in your local cache and recomputes the SHA-256 hash of each package's `raiku.toml`, then compares that hash against the value recorded in the index. Any mismatch means the file has changed since it was installed — either through corruption, a botched migration, or tampering. Running audit regularly gives you confidence that your cache is exactly what Raiku downloaded and verified at install time.
+
+## Usage
+
+```bash
+raiku audit [--language LANG] [--fix]
+```
+
+## Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--language` | `-l` | Audit only packages for one language (e.g. `Python`, `Rust`). |
+| `--fix` | | Evict packages that fail the audit. Affected packages can be cleanly reinstalled with `raiku install`. |
+
+## What audit checks
+
+For every installed package, Raiku:
+
+1. Locates the version directory at `~/.raiku/cache/<Language>/<name>/<version>/`.
+2. Reads the cached `raiku.toml` and computes its SHA-256 digest.
+3. Looks up the expected hash from the local index (`~/.raiku/index.json`).
+4. Compares the two values and reports one of three outcomes:
+
+| Status | Meaning |
+|--------|---------|
+| `✓ OK` | Computed hash matches the index entry — package is intact. |
+| `✗ FAIL` | Hash mismatch — file has been modified since installation. |
+| `? NO HASH` | No hash is recorded in the index for this package — cannot verify. |
+
+When `--fix` is passed, every `FAIL` or `MISSING` entry is evicted from the cache automatically. Those packages are removed cleanly and can be reinstalled from scratch.
+
+## Examples
+
+<CodeGroup>
+```bash Audit all packages
+raiku audit
+```
+
+```bash Audit one language
+raiku audit --language Python
+```
+
+```bash Audit and auto-fix failures
+raiku audit --fix
+```
+
+```bash Audit one language and fix
+raiku audit --language Rust --fix
+```
+</CodeGroup>
+
+### Sample output
+
+```
+ Package       Version  Language  Status      Detail
+ ─────────────────────────────────────────────────────────────
+ blazing-vec   1.0.0    Rust      ✓ OK
+ fast-math     1.2.0    Python    ✗ FAIL      expected a3c8f1d2… got b9e2cc41…
+ goqueue       0.9.1    Go        ✓ OK
+
+╭─────────────────────────────────────────────────────────────╮
+│ ✗ 1 package(s) failed integrity check.                      │
+│ Run raiku audit --fix to remove corrupted packages.         │
+╰─────────────────────────────────────────────────────────────╯
+```
+
+<Tip>
+Run `raiku audit` periodically and especially after system migrations, disk repairs, or any manual edits inside `~/.raiku/cache/`. Catching corruption early prevents subtle build failures downstream. Pair it with `raiku sync --force` beforehand to ensure the index hashes are fresh.
+</Tip>
+
+<Note>
+`raiku audit` verifies the SHA-256 hash of `raiku.toml` only — the same file that is hashed when a package is published. To verify a single package interactively, use [`raiku verify`](/cli/verify).
+</Note>

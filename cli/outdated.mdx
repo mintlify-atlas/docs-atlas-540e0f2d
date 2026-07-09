@@ -1,0 +1,73 @@
+---
+title: "raiku outdated — Find Packages with Available Updates"
+sidebarTitle: "outdated"
+description: "raiku outdated lists all locally installed packages that have newer versions in the index. Does not install anything — use raiku update to apply upgrades."
+---
+
+`raiku outdated` is a read-only inspection command that compares the version of every package in your local cache against the latest version recorded in `~/.raiku/index.json` and prints a table of everything that has a newer release available. It never downloads or modifies files — its only job is to inform you. Once you know what is out of date, use `raiku update` to apply the upgrades. The `--json` flag emits machine-readable output, making `raiku outdated` a useful building block in scripts and CI pipelines.
+
+## Usage
+
+```bash
+raiku outdated [--language LANG] [--json]
+```
+
+## Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--language` | `-l` | Limit the check to packages of a specific language |
+| `--json` | | Emit results as a JSON array instead of a formatted table |
+
+## Examples
+
+<CodeGroup>
+```bash Check all installed packages
+raiku outdated
+```
+
+```bash Check only Go packages
+raiku outdated --language Go
+```
+
+```bash Machine-readable JSON output
+raiku outdated --json
+```
+
+```bash Pipe JSON into jq for scripting
+raiku outdated --json | jq '[.[] | .name]'
+```
+</CodeGroup>
+
+### JSON Output Format
+
+When `--json` is passed, the output is a JSON array. Each element represents one outdated package:
+
+```bash
+raiku outdated --json
+```
+
+```json
+[
+  {
+    "name": "fast-math",
+    "current": "1.0.0",
+    "latest": "1.2.0",
+    "language": "Python"
+  },
+  {
+    "name": "goqueue",
+    "current": "0.3.1",
+    "latest": "0.4.0",
+    "language": "Go"
+  }
+]
+```
+
+<Tip>
+  Pipe `--json` output into `jq` or any JSON processor to build custom update dashboards, send Slack notifications, or gate deployments on package freshness in your CI workflow.
+</Tip>
+
+<Note>
+  `raiku outdated` reads from the local index — it does not contact the network. Run `raiku sync` before `raiku outdated` to make sure the index reflects the current state of the registry.
+</Note>

@@ -1,0 +1,103 @@
+---
+title: "raiku trust — Manage the Persistent Package Trust List"
+sidebarTitle: "trust"
+description: "raiku trust marks packages as trusted, skipping the safe-mode build confirmation prompt on future installs. Trust is always an explicit user action, never automatic."
+---
+
+When `safe_mode` is enabled (the default), Raiku prompts you to confirm each package's build command before executing it. `raiku trust` lets you permanently mark specific packages as trusted so that prompt is suppressed on future installs. Trust is always an explicit, deliberate action — Raiku never grants it automatically, regardless of configuration. The trust list is stored locally in `~/.raiku/trusted.json` and is scoped to the current machine.
+
+## Usage
+
+```bash
+raiku trust add PACKAGE [--reason TEXT]
+raiku trust remove PACKAGE
+raiku trust list
+raiku trust clear [--yes]
+```
+
+## Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `add PACKAGE` | Mark PACKAGE as trusted. Raiku prompts for explicit confirmation before adding. |
+| `remove PACKAGE` | Revoke trust from PACKAGE. Future installs will prompt again. |
+| `list` | Show all trusted packages with the trust date and reason. |
+| `clear [--yes]` | Remove all trusted packages from the list. |
+
+## Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--reason TEXT` | | (`add` only) A note stored with the trust entry explaining why the package is trusted. |
+| `--yes` | `-y` | (`clear` only) Skip the confirmation prompt. |
+
+## Storage
+
+Trust data is written to `~/.raiku/trusted.json` as a flat JSON object keyed by lowercase package name:
+
+```json
+{
+  "trusted": {
+    "fast-math": {
+      "name": "fast-math",
+      "trusted_at": 1728086400,
+      "reason": "reviewed source, MIT license"
+    }
+  }
+}
+```
+
+This file is **per-machine**. Trusting a package on one workstation does not trust it on another. If you share environments across machines, re-run `raiku trust add` on each machine after reviewing the package.
+
+## Behavior details
+
+- `raiku trust add` **always shows a warning** and requires interactive confirmation before recording trust — even when called non-interactively. This is intentional.
+- Trusted packages skip the build-command confirmation prompt during `raiku install`. They do **not** skip forbidden-pattern scanning: packages with dangerous patterns in their build commands will still be rejected regardless of trust status.
+- Removing trust with `raiku trust remove` takes effect immediately. The next `raiku install` of that package will prompt as if it were new.
+
+## Examples
+
+<CodeGroup>
+```bash Trust a package
+raiku trust add fast-math
+```
+
+```bash Trust with a reason
+raiku trust add goqueue --reason "reviewed source, MIT license"
+```
+
+```bash Remove trust from a package
+raiku trust remove fast-math
+```
+
+```bash List all trusted packages
+raiku trust list
+```
+
+```bash Clear the entire trust list
+raiku trust clear
+```
+
+```bash Clear without prompting
+raiku trust clear --yes
+```
+</CodeGroup>
+
+### Sample `raiku trust list` output
+
+```
+ Package    Trusted Since         Reason
+ ──────────────────────────────────────────────────────────────
+ fast-math  2024-10-05 14:22      reviewed source, MIT license
+ goqueue    2024-09-18 09:11      —
+
+2 trusted package(s).
+```
+
+<Warning>
+Only trust packages you have personally reviewed. Trusting a package means its build command will execute without prompting you — if the build command is malicious, it will run silently. Trust is not a substitute for code review.
+</Warning>
+
+<Note>
+Trust never bypasses forbidden-pattern scanning. Even trusted packages cannot contain shell commands with `rm -rf`, `curl | bash`, or other patterns that Raiku's security scanner blocks.
+</Note>

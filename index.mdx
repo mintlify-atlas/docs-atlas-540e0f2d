@@ -1,20 +1,102 @@
 ---
-title: "Introduction"
-description: "Welcome to your project"
+title: "Raiku: Community-Driven Multi-Language Package Manager"
+sidebarTitle: "Home"
+description: "Raiku is an open, Git-based package manager supporting Python, Rust, C, C++, Zig, Java, C#, and Go — with built-in hash verification and safe-mode builds."
 ---
 
-Write a short description of your product here. What it does, who it's for, and what they can accomplish with it.
+Raiku is a community-driven package manager built on GitHub. Every package lives in the registry repository under `UserSub/<Language>/`, anyone can contribute, and the CLI fetches only the package files you need — no full repository clone required. Raiku supports eight languages and enforces SHA-256 integrity verification and safe-mode build approval on every install.
 
-<Tip>
-  Ready to make this your own? Start by editing this page. Update your `docs.json` file to customize your site. Then fill out the [Quickstart](/quickstart) page.
-</Tip>
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Install the CLI and install your first package in under two minutes.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/overview">
+    Full reference for all commands, subcommands, and flags.
+  </Card>
+  <Card title="Creating Packages" icon="box" href="/guides/creating-a-package">
+    Scaffold, validate, and publish your own Raiku package.
+  </Card>
+  <Card title="Security Model" icon="shield-halved" href="/security/overview">
+    Hash verification, safe mode, forbidden pattern scanning, and more.
+  </Card>
+</CardGroup>
 
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  This card links to the quickstart page in your project.
-</Card>
-<Card title="Components" icon="puzzle-piece" href="https://mintlify.com/docs/components">
-  Add cards, callouts, steps, tabs, and more to design and structure your pages.
-</Card>
-<Card title="Settings" icon="gear" href="https://mintlify.com/docs/organize/settings">
-  Set your site name, branding, and navigation in the `docs.json` file.
-</Card>
+## What is Raiku?
+
+Raiku provides a single CLI for discovering, installing, and managing packages across eight programming languages. The package registry is a GitHub repository — every package is a directory with a `raiku.toml` manifest, a `version.yml` file, a `README.md`, and source code in `src/`. The CLI handles dependency resolution, SHA-256 integrity checks, build execution, and version pinning.
+
+<CardGroup cols={3}>
+  <Card title="Python" icon="python">
+    `pip install -e .` builds
+  </Card>
+  <Card title="Rust" icon="gear">
+    `cargo build --release` builds
+  </Card>
+  <Card title="Go" icon="arrow-right">
+    `go build ./...` builds
+  </Card>
+  <Card title="C / C++" icon="c">
+    GCC, Clang, and CMake
+  </Card>
+  <Card title="C#" icon="hashtag">
+    .NET SDK 8.0+ builds
+  </Card>
+  <Card title="Zig / Java" icon="code">
+    Zig 0.12+ and JDK 17+
+  </Card>
+</CardGroup>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Safe Mode Builds" icon="lock" href="/security/safe-mode-and-trust">
+    Every build command is shown and requires explicit approval before execution.
+  </Card>
+  <Card title="SHA-256 Verification" icon="shield-check" href="/security/overview">
+    Package integrity is verified against the index hash on every install.
+  </Card>
+  <Card title="Dependency Resolution" icon="diagram-project" href="/guides/searching-and-installing">
+    Transitive dependencies are resolved and installed in the correct order.
+  </Card>
+  <Card title="Lock Files" icon="file-lock" href="/guides/lock-files">
+    Pin exact versions with `raiku.lock` for reproducible installs.
+  </Card>
+  <Card title="Package Scaffolding" icon="wand-magic-sparkles" href="/guides/creating-a-package">
+    `raiku init` generates language-appropriate source templates interactively.
+  </Card>
+  <Card title="Version Pins" icon="thumbtack" href="/cli/pin">
+    Prevent auto-updates for stable packages with `raiku pin add`.
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+<Steps>
+  <Step title="Install the Raiku CLI">
+    Clone the repository and install with pip (Python 3.10+ required):
+    ```bash
+    git clone https://github.com/SGizek/Raiku
+    cd Raiku
+    pip install -e .
+    ```
+  </Step>
+  <Step title="Sync the package index">
+    Pull the latest package index from GitHub:
+    ```bash
+    raiku sync
+    ```
+  </Step>
+  <Step title="Search and install a package">
+    Find packages by name, description, or tag, then install:
+    ```bash
+    raiku search math
+    raiku install fast-math
+    ```
+  </Step>
+  <Step title="Create your own package">
+    Use the interactive wizard to scaffold a new package:
+    ```bash
+    raiku init
+    ```
+  </Step>
+</Steps>

@@ -1,0 +1,91 @@
+---
+title: "raiku stats — View Ecosystem and Cache Statistics"
+sidebarTitle: "stats"
+description: "raiku stats displays total package count, language breakdown, top tags from the index, and local cache statistics including installed count and disk usage."
+---
+
+`raiku stats` gives you a quick, read-only snapshot of two things at once: the state of the Raiku ecosystem as recorded in your local index, and the state of your personal package cache. It is useful for getting an instant inventory of what is installed, how much disk space the cache consumes, which languages have the most community packages, and what topics are most popular by tag.
+
+## Usage
+
+```bash
+raiku stats
+```
+
+`raiku stats` takes no arguments or flags. It reads from `~/.raiku/index.json` (loaded by `raiku sync`) and scans `~/.raiku/cache/` for locally installed packages.
+
+## Output sections
+
+### Index panel
+
+Derived from the synced `~/.raiku/index.json`:
+
+| Field | Description |
+|-------|-------------|
+| Total packages | Number of packages registered in the index. |
+| Languages | Number of distinct languages with at least one package. |
+| Index synced | Timestamp of the last successful `raiku sync`. |
+
+Followed by a **language breakdown** table with a proportional bar chart showing the relative share of packages per language.
+
+### Local cache panel
+
+Derived from `~/.raiku/cache/`:
+
+| Field | Description |
+|-------|-------------|
+| Installed packages | Number of package versions currently cached locally. |
+| Cache size | Total disk usage of `~/.raiku/cache/`, formatted as B / KB / MB / GB. |
+| Cache directory | Absolute path to the cache (respects `cache_dir` config override). |
+
+### Top tags
+
+A table of the ten most frequently used tags across all indexed packages, sorted by count descending.
+
+## Examples
+
+```bash
+raiku stats
+```
+
+### Sample output
+
+```
+╭─────────── Index ───────────╮
+│  Total packages   47         │
+│  Languages        7          │
+│  Index synced     2024-11-12 09:43 │
+╰──────────────────────────────╯
+
+ Language   Packages  Bar
+ ─────────────────────────────────
+ Python        18     ████████████████████
+ Rust          12     █████████████
+ Go             8     █████████
+ C/C++          5     █████
+ Java           2     ██
+ Zig            1     █
+ C#             1     █
+
+╭──────────── Local Cache ────────────╮
+│  Installed packages   12             │
+│  Cache size           84.3 MB        │
+│  Cache directory      /home/user/.raiku/cache │
+╰──────────────────────────────────────╯
+
+ Tag           Count
+ ───────────────────
+ math             9
+ collections      7
+ algorithms       6
+ networking       5
+ io               4
+```
+
+<Note>
+If the index has not been synced yet, the Index panel will not appear and `raiku stats` will prompt you to run `raiku sync`. The Local Cache panel is always available regardless of index state.
+</Note>
+
+<Tip>
+Pair `raiku stats` with `raiku outdated` to see both how many packages you have installed and which of them have newer versions waiting in the index.
+</Tip>

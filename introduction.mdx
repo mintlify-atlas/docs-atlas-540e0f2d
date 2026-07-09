@@ -1,0 +1,128 @@
+---
+title: "Raiku: Multi-Language Package Manager Built on GitHub"
+sidebarTitle: "Introduction"
+description: "Raiku is a community-driven CLI package manager supporting Python, Rust, C, C++, Zig, Java, C#, and Go with Git-based package hosting and built-in security."
+---
+
+Raiku is an open-source, community-driven package manager that uses GitHub as its registry — no proprietary server, no sign-up required. Every package lives directly inside the [SGizek/Raiku](https://github.com/SGizek/Raiku) repository under `UserSub/<Language>/`, and anyone can contribute by opening a pull request. When you run `raiku install`, the CLI reads a locally cached `index.json` (synced from GitHub) to locate the package, then fetches only the files it needs using raw GitHub URLs — meaning you never clone the entire monorepo just to install a single library. SHA-256 hash verification and a safe-mode build prompt protect you at every step.
+
+## Supported Languages
+
+Raiku covers eight languages out of the box. Each has its own subdirectory in the registry and its own scaffolding template via `raiku init`.
+
+<CardGroup cols={4}>
+  <Card title="Python" icon="python">
+    `UserSub/Python/`
+  </Card>
+  <Card title="Rust" icon="rust">
+    `UserSub/Rust/`
+  </Card>
+  <Card title="C" icon="c">
+    `UserSub/C/`
+  </Card>
+  <Card title="C++" icon="code">
+    `UserSub/CPP/`
+  </Card>
+  <Card title="Zig" icon="bolt">
+    `UserSub/Zig/`
+  </Card>
+  <Card title="Java" icon="java">
+    `UserSub/Java/`
+  </Card>
+  <Card title="C#" icon="microsoft">
+    `UserSub/CSharp/`
+  </Card>
+  <Card title="Go" icon="golang">
+    `UserSub/Go/`
+  </Card>
+</CardGroup>
+
+## How the Ecosystem Works
+
+Raiku separates the **index** from the **packages** to keep installs fast and bandwidth-light.
+
+1. **`raiku sync`** fetches the single `index/index.json` file from `https://raw.githubusercontent.com/SGizek/Raiku/main/index/index.json` and saves it to `~/.raiku/index.json`. This is the only time the full index is downloaded.
+2. **`raiku install <package>`** reads your local `index.json`, resolves transitive dependencies, and fetches only the required files for each package using individual raw GitHub URLs — `raiku.toml`, `version.yml`, `README.md`, and the contents of `src/`.
+3. Files are cached at `~/.raiku/cache/<Language>/<name>/<version>/` so repeat installs are instant.
+4. The SHA-256 hash of every downloaded file is verified against the index entry before anything is executed.
+
+```json
+// ~/.raiku/index.json — structure of a single index entry
+{
+  "name": "fast-math",
+  "version": "1.0.0",
+  "language": "Python",
+  "author": "contributor",
+  "description": "Fast math utilities for Python.",
+  "tags": ["math", "utils"],
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "path": "UserSub/Python/fast-math"
+}
+```
+
+## Repository Layout
+
+The Raiku repository is a monorepo that acts as both the CLI source and the package registry.
+
+```
+Raiku/
+  UserSub/              ← all community packages
+    Python/
+    Rust/
+    C/
+    CPP/
+    Zig/
+    Java/
+    CSharp/
+    Go/
+  cli/                  ← Click CLI — commands live here
+    commands/           ← one file per subcommand
+  core/                 ← config, cache, constants, resolver, lockfile, pins, trust
+  parser/               ← raiku.toml and version.yml parsers
+  installer/            ← streaming package fetcher, cache store, safe build runner
+  validator/            ← Cerberus schema validator, SHA-256 checker, rules checker
+  index/                ← IndexManager + index.json
+  schemas/              ← schema.yml (canonical validation rules)
+  docs/                 ← extended documentation
+  rules.md              ← strict package contribution rulebook
+  pyproject.toml        ← Python project metadata and CLI entrypoint
+```
+
+Every package inside `UserSub/` follows a consistent four-file structure:
+
+```
+package-name/
+  raiku.toml     ← manifest (name, version, language, build_command, …)
+  version.yml    ← version info (version, release_date, changelog, stability_level)
+  README.md      ← documentation
+  src/           ← source code (at least one file required)
+```
+
+## Key Design Principles
+
+**Community-driven, no central server.** The GitHub repository is the registry. Pull requests are the publishing mechanism. There is no proprietary backend that can go offline or change its terms.
+
+**Selective fetching.** The CLI never clones the repository. It downloads only the `index.json` during sync, then fetches individual package files on demand. This keeps installs fast even as the registry grows.
+
+**SHA-256 integrity.** Every package's hash is recorded in `index.json` and re-verified at install time. `raiku audit` re-checks every file in your local cache at any time.
+
+**Safe mode builds.** Before executing any build command, Raiku displays the full command and waits for your explicit approval (`safe_mode = true` by default). A static blocklist of dangerous shell patterns — including `rm -rf`, `eval(`, and `subprocess.Popen` — is scanned before any command runs, regardless of safe mode.
+
+**Reproducible installs.** `raiku install <pkg> --lock` records exact installed versions and their hashes in `raiku.lock`. Commit this file to guarantee identical installs across machines and CI environments.
+
+## Explore Raiku
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Install the CLI and get your first package running in under two minutes.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/overview">
+    Full reference for every Raiku command, flag, and option.
+  </Card>
+  <Card title="Security" icon="shield" href="/security/overview">
+    How SHA-256 verification, safe mode, and the forbidden-pattern scan protect you.
+  </Card>
+  <Card title="Contributing" icon="git-pull-request" href="/guides/contributing">
+    Scaffold a package with `raiku init` and open your first PR.
+  </Card>
+</CardGroup>

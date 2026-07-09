@@ -1,0 +1,106 @@
+---
+title: "raiku upgrade — Upgrade the Raiku CLI Itself"
+sidebarTitle: "upgrade"
+description: "raiku upgrade downloads and installs the latest version of the Raiku CLI from GitHub, updating the tool itself rather than any managed packages."
+---
+
+`raiku upgrade` updates the Raiku CLI binary itself to the latest release published on GitHub. It fetches the latest release tag from the GitHub API, compares it against your currently installed version, and — if a newer version is available — runs `pip install --upgrade` against the tagged source. This command upgrades the **tool**, not the packages you manage with it. To update managed packages, use `raiku update`.
+
+## Usage
+
+```bash
+raiku upgrade [--check] [--yes]
+```
+
+## Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--check` | | Check whether a newer version is available without installing anything. |
+| `--yes` | `-y` | Skip the confirmation prompt and upgrade immediately. |
+
+## What it upgrades
+
+`raiku upgrade` installs the Raiku CLI from the latest tagged release on GitHub:
+
+```
+pip install --upgrade git+https://github.com/SGizek/Raiku.git@v<latest>
+```
+
+It does **not** touch any packages managed by Raiku (`~/.raiku/cache/`), your configuration (`~/.raiku/config.toml`), pins, trust list, or lock files. Your entire managed environment is preserved across a CLI upgrade.
+
+## Behavior
+
+1. Fetches the latest release tag from `https://api.github.com/repos/SGizek/Raiku/releases/latest`.
+2. If no release exists, falls back to the latest tag from the tags API.
+3. Compares the fetched version against the installed version using semantic versioning.
+4. If already up to date, prints a confirmation and exits.
+5. If `--check` is set, prints the available update and exits without installing.
+6. Otherwise, prompts for confirmation (or proceeds immediately with `--yes`), then runs the upgrade.
+
+## Examples
+
+<CodeGroup>
+```bash Upgrade to the latest version
+raiku upgrade
+```
+
+```bash Check for updates without installing
+raiku upgrade --check
+```
+
+```bash Upgrade without prompting
+raiku upgrade --yes
+```
+</CodeGroup>
+
+### Sample output — update available
+
+```
+Raiku Upgrade — checking for new version...
+
+  Installed : 0.3.1
+  Latest    : 0.4.0
+
+? Upgrade Raiku v0.3.1 → v0.4.0? [Y/n]: y
+
+  Upgrading v0.3.1 → v0.4.0...
+  ...
+
+╭──────────────────────────────────────────────────────────╮
+│ ✓ Raiku upgraded to v0.4.0                               │
+│                                                          │
+│ Restart your shell or run raiku --version to confirm.    │
+╰──────────────────────────────────────────────────────────╯
+```
+
+### Sample output — already up to date
+
+```
+Raiku Upgrade — checking for new version...
+
+  Installed : 0.4.0
+  Latest    : 0.4.0
+
+✓ Raiku is already up to date (v0.4.0).
+```
+
+### Sample output — `--check` only
+
+```
+Raiku Upgrade — checking for new version...
+
+  Installed : 0.3.1
+  Latest    : 0.4.0
+
+Update available: v0.3.1 → v0.4.0
+Run raiku upgrade to install.
+```
+
+<Note>
+`raiku upgrade` updates the Raiku CLI itself. To update the packages you have installed with Raiku, use [`raiku update --all`](/cli/update). The two commands are completely independent and do not affect each other.
+</Note>
+
+<Tip>
+Run `raiku upgrade --check` in your shell startup script or CI pre-flight to detect when a new CLI version is available, without automatically performing the upgrade. This lets you control when upgrades happen in critical pipelines.
+</Tip>

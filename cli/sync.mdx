@@ -1,0 +1,43 @@
+---
+title: "raiku sync — Update the Local Package Index"
+sidebarTitle: "sync"
+description: "raiku sync fetches the latest index.json from GitHub and stores it at ~/.raiku/index.json. Use --force to skip the 1-hour freshness check."
+---
+
+`raiku sync` is the first command to run on a fresh Raiku installation and the right command to run whenever you want to discover newly published packages. It downloads the canonical `index.json` from the URL stored in `index_url` inside `~/.raiku/config.toml` (defaulting to the official GitHub raw URL) and writes it to `~/.raiku/index.json`. To avoid unnecessary network requests, the command checks the file's modification time and skips the download if the local copy is less than one hour old — pass `--force` to override that check and always fetch a fresh copy.
+
+## Usage
+
+```bash
+raiku sync [--force]
+```
+
+## Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--force` | `-f` | Sync even if the local index was fetched less than 1 hour ago |
+
+## What It Does
+
+1. Reads `index_url` from `~/.raiku/config.toml`.
+2. Calls `IndexManager.is_stale()` to compare the age of `~/.raiku/index.json` against a 1-hour threshold.
+3. If the index is fresh and `--force` is not set, prints a confirmation message and exits immediately without making a network request.
+4. Otherwise, streams `index.json` from the remote URL and atomically writes it to `~/.raiku/index.json`.
+5. Prints a summary showing the total number of available packages. In `--verbose` mode, a per-language breakdown table is also displayed.
+
+## Examples
+
+<CodeGroup>
+```bash Standard sync
+raiku sync
+```
+
+```bash Force a fresh download
+raiku sync --force
+```
+</CodeGroup>
+
+<Tip>
+  Run `raiku sync` before `raiku install` or `raiku search` on a new machine or after a period of inactivity to make sure you are working against the latest package index.
+</Tip>

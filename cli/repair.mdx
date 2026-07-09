@@ -1,0 +1,83 @@
+---
+title: "raiku repair — Fix Broken or Incomplete Cache Entries"
+sidebarTitle: "repair"
+description: "raiku repair scans the local cache for broken, incomplete, or corrupted package entries and removes them so they can be cleanly reinstalled."
+---
+
+`raiku repair` walks every package directory inside `~/.raiku/cache/` and flags entries that are structurally broken or incomplete. Unlike `raiku audit`, which verifies content hashes against the index, `raiku repair` focuses on structural integrity — checking that required files are present, that metadata is parseable, and that no directory was left in a half-written state by an interrupted install. Running it after an unexpected shutdown or a failed install is a reliable way to clean up the cache before trying again.
+
+## Usage
+
+```bash
+raiku repair [--fix] [--yes]
+```
+
+## Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--fix` | | Remove all broken entries found (default: report only). |
+| `--yes` | `-y` | Skip confirmation when `--fix` is used. |
+
+## What repair scans for
+
+`raiku repair` inspects every `~/.raiku/cache/<Language>/<package>/<version>/` directory and flags it as broken if any of the following conditions are true:
+
+| Issue | Description |
+|-------|-------------|
+| Empty directory | The version folder exists but contains no files — install was interrupted before any data was written. |
+| Missing `meta.json` | The package metadata sidecar is absent — Raiku cannot identify the package. |
+| Corrupt `meta.json` | The sidecar exists but cannot be parsed as valid JSON. |
+| Missing `raiku.toml` | The package manifest is absent — integrity verification and build commands cannot proceed. |
+
+## Behavior
+
+By default (without `--fix`), `raiku repair` prints a table of all broken entries and exits without modifying anything. Pass `--fix` to delete the identified entries after a confirmation prompt. Once removed, broken packages can be reinstalled cleanly with `raiku install <name>`.
+
+## Examples
+
+<CodeGroup>
+```bash Scan without removing anything
+raiku repair
+```
+
+```bash Scan and remove broken entries
+raiku repair --fix
+```
+
+```bash Remove broken entries without prompting
+raiku repair --fix --yes
+```
+</CodeGroup>
+
+### Sample output — issues found
+
+```
+Raiku Repair — scanning cache...
+
+ Package      Version  Language  Issues
+ ──────────────────────────────────────────────────────────
+ fast-math    1.2.0    Python    missing meta.json
+ half-baked   0.1.0    Rust      empty directory; missing raiku.toml
+
+Found 2 broken cache entry/entries.
+
+Run raiku repair --fix to remove them.
+They can be cleanly reinstalled with raiku install <name>.
+```
+
+### Sample output — clean cache
+
+```
+Raiku Repair — scanning cache...
+
+✓ Cache is clean — no broken entries found.
+```
+
+<Note>
+`raiku repair` removes structurally broken entries. To detect content tampering — where files are present but hashes have changed — use [`raiku audit`](/cli/audit) instead.
+</Note>
+
+<Tip>
+Run `raiku repair` followed by `raiku audit` after any unclean system shutdown or disk event. Together they cover both structural and content integrity of your local package cache.
+</Tip>

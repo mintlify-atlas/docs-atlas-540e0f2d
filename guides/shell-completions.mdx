@@ -1,0 +1,158 @@
+---
+title: "Enable Shell Completions for Raiku"
+sidebarTitle: "Shell Completions"
+description: "Install tab-completion for Raiku commands and package names in bash, zsh, fish, or PowerShell using raiku completion with the --install flag."
+---
+
+Raiku ships a completion generator for bash, zsh, fish, and PowerShell. Once installed, pressing <kbd>Tab</kbd> in your shell will complete Raiku subcommands, flags, and package names pulled from the local index — so you can type `raiku install fast<Tab>` and get `fast-math` without remembering exact names. Completions are generated using Click's built-in completion mechanism and are appended to your shell's startup file by `raiku completion <shell> --install`.
+
+---
+
+## Installing Completions
+
+<Tabs>
+  <Tab title="Bash">
+    **Auto-install** (appends the eval snippet to `~/.bashrc`):
+
+    ```bash
+    raiku completion bash --install
+    ```
+
+    After running, restart your shell or reload your config:
+
+    ```bash
+    source ~/.bashrc
+    ```
+
+    **Manual install** (if you prefer to manage your dotfiles yourself):
+
+    ```bash
+    raiku completion bash >> ~/.bashrc && source ~/.bashrc
+    ```
+
+    The snippet appended to `~/.bashrc` looks like:
+
+    ```bash
+    # raiku completion
+    eval "$(_RAIKU_COMPLETE=bash_source raiku)"
+    ```
+  </Tab>
+  <Tab title="Zsh">
+    **Auto-install** (appends the eval snippet to `~/.zshrc`):
+
+    ```bash
+    raiku completion zsh --install
+    ```
+
+    After running, restart your shell or reload your config:
+
+    ```bash
+    source ~/.zshrc
+    ```
+
+    **Manual install:**
+
+    ```bash
+    raiku completion zsh >> ~/.zshrc && source ~/.zshrc
+    ```
+
+    The snippet appended to `~/.zshrc` looks like:
+
+    ```bash
+    # raiku completion
+    eval "$(_RAIKU_COMPLETE=zsh_source raiku)"
+    ```
+  </Tab>
+  <Tab title="Fish">
+    **Auto-install** (writes directly to `~/.config/fish/completions/raiku.fish`):
+
+    ```fish
+    raiku completion fish --install
+    ```
+
+    Fish automatically sources every file in `~/.config/fish/completions/`, so no additional step is needed — completions are active in your next shell session.
+
+    **Manual install:**
+
+    ```fish
+    raiku completion fish > ~/.config/fish/completions/raiku.fish
+    ```
+
+    The file written to `~/.config/fish/completions/raiku.fish` looks like:
+
+    ```fish
+    _RAIKU_COMPLETE=fish_source raiku | source
+    ```
+  </Tab>
+  <Tab title="PowerShell">
+    **Auto-install** (appends the completion block to `$PROFILE`):
+
+    ```powershell
+    raiku completion powershell --install
+    ```
+
+    After running, restart your PowerShell session or reload your profile:
+
+    ```powershell
+    . $PROFILE
+    ```
+
+    **Manual install:**
+
+    ```powershell
+    raiku completion powershell >> $PROFILE
+    ```
+
+    The block appended to `$PROFILE` looks like:
+
+    ```powershell
+    # raiku completion
+    $env:_RAIKU_COMPLETE = "powershell_source"
+    & raiku | Invoke-Expression
+    Remove-Item Env:_RAIKU_COMPLETE
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Printing the Script Without Installing
+
+Omit `--install` to print the completion script to standard output instead of writing it to any file. This is useful for reviewing the script before committing it to your dotfiles, or for deploying it through a configuration management tool:
+
+```bash
+# Print to stdout — review before installing
+raiku completion bash
+raiku completion zsh
+raiku completion fish
+raiku completion powershell
+```
+
+The output is displayed in a syntax-highlighted panel in your terminal, along with the recommended config file path and the command to auto-install it:
+
+```
+To install automatically: raiku completion bash --install
+Or manually append to ~/.bashrc
+```
+
+---
+
+## What Gets Completed
+
+<Note>
+  Completions include package names sourced from the local index at `~/.raiku/index.json`. Run `raiku sync` to refresh the index if newly published packages are not appearing as completion candidates.
+</Note>
+
+Once completions are active, Tab will complete:
+
+- **Subcommands** — `install`, `search`, `update`, `outdated`, `uninstall`, `pin`, `list`, `sync`, `info`, `audit`, `stats`, `doctor`, `config`, `trust`, `completion`, `init`, `validate`, `publish`, `index`, `cache`
+- **Flags** — all flags for the current subcommand, e.g. `--language`, `--tag`, `--limit`, `--trust`, `--no-build`, `--force`, `--lock`, `--all`, `--dry-run`, `--yes`, `--version`
+- **Package names** — for commands that accept a package argument (`install`, `update`, `uninstall`, `pin add`, `pin remove`, `info`, `trust add`, `trust remove`)
+
+```bash
+# Examples of what Tab-completion enables
+raiku install fast<Tab>         # → fast-math
+raiku update --<Tab>            # → --all  --dry-run
+raiku pin add <Tab>             # → list of installed packages
+raiku completion <Tab>          # → bash  zsh  fish  powershell
+```

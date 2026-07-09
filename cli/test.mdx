@@ -1,0 +1,107 @@
+---
+title: "raiku test — Run a Package's Test Suite"
+sidebarTitle: "test"
+description: "raiku test auto-detects and runs the test suite of an installed package. Supports pytest for Python, cargo test for Rust, go test for Go, and zig test for Zig."
+---
+
+`raiku test` provides a uniform interface for running tests across all eight languages supported by Raiku. Instead of remembering whether a package uses `pytest`, `cargo test`, `go test`, or `zig build test`, you simply pass the package name and `raiku test` figures out the right runner automatically. It resolves the package's cache directory, selects the first available test runner for the package's language (in priority order), and streams the test output directly to your terminal. The exit code mirrors the test runner's, making `raiku test` suitable for use in CI pipelines.
+
+## Usage
+
+```bash
+raiku test PACKAGE [--version VER] [--runner CMD]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `PACKAGE` | Name of the installed package to test |
+
+## Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--version` | latest installed | Test a specific installed version of the package |
+| `--runner` | auto-detected | Override the test runner command (space-separated, e.g. `pytest -x`) |
+
+## Auto-Detection by Language
+
+`raiku test` tries each runner in the priority order shown below, using `shutil.which` to check whether the binary is available on the host system:
+
+| Language | Priority | Runner | Command |
+|----------|----------|--------|---------|
+| Python | 1 | pytest | `pytest -v` |
+| Python | 2 | unittest | `python -m unittest discover -v` |
+| Rust | 1 | cargo test | `cargo test` |
+| C | 1 | make test | `make test` |
+| C++ | 1 | ctest | `cmake --build build --target test` |
+| C++ | 2 | cmake | `ctest --test-dir build -V` |
+| Zig | 1 | zig build test | `zig build test` |
+| Java | 1 | mvn | `mvn test -q` |
+| Java | 2 | gradle | `gradle test` |
+| C# | 1 | dotnet test | `dotnet test` |
+| Go | 1 | go test | `go test ./...` |
+
+If no runner is found for the package's language, `raiku test` prints a helpful message and suggests installing the appropriate toolchain or using `--runner` to specify a custom command.
+
+<Note>
+  Run `raiku doctor` to verify that all test tools for your languages are installed and accessible. `raiku doctor --language Python` shows the specific status of Python tooling.
+</Note>
+
+## Behavior
+
+- Tests run inside the package's cache directory (`~/.raiku/cache/<Language>/<name>/<version>/`).
+- The runner and full command are printed before execution so you know exactly what is being run.
+- `raiku test` exits with the test runner's exit code, so `$?` reliably indicates pass or fail.
+- If multiple versions of a package are installed, the latest is used unless `--version` is specified.
+
+## Examples
+
+<CodeGroup>
+
+```bash Run tests for a Python package
+raiku test fast-math
+```
+
+```bash Run tests for a Rust package
+raiku test blazing-vec
+```
+
+```bash Run tests for a Go package
+raiku test goqueue
+```
+
+```bash Test a specific version
+raiku test fast-math --version 1.1.0
+```
+
+```bash Override the runner
+raiku test fast-math --runner "pytest -x --tb=short"
+```
+
+</CodeGroup>
+
+## Sample Output
+
+```
+Testing fast-math v1.2.0 [Python] in ~/.raiku/cache/Python/fast-math/1.2.0
+
+  Runner:  pytest
+  Command: pytest -v
+
+========================= test session starts ==========================
+platform linux -- Python 3.12.2, pytest-8.1.1
+collected 24 items
+
+src/test_fast_math.py::test_add          PASSED  [  4%]
+src/test_fast_math.py::test_multiply     PASSED  [  8%]
+...
+========================= 24 passed in 0.42s ===========================
+
+✓ Tests passed for 'fast-math'.
+```
+
+<Tip>
+  After `raiku install`, run `raiku test PACKAGE` immediately to verify the package works correctly in your local environment before using it in your project.
+</Tip>

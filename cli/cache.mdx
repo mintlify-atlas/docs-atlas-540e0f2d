@@ -1,0 +1,93 @@
+---
+title: "raiku cache — Manage the Local Package Cache"
+sidebarTitle: "cache"
+description: "raiku cache shows disk usage and installed package count with --info, or wipes the entire local cache with --clear. Cache lives at ~/.raiku/cache/ by default."
+---
+
+`raiku cache` gives you visibility into and control over the local package store that Raiku maintains on disk. All packages installed by Raiku live under `~/.raiku/cache/` in a structured directory tree — `raiku cache --info` lets you see how much space they occupy, while `raiku cache --clear` wipes the entire store so you can start fresh. The cache path can be customised with `raiku config set cache_dir`.
+
+## Usage
+
+```bash
+raiku cache --info
+raiku cache --clear [--yes]
+```
+
+## Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--info` | | Show the cache path, installed package count, and total disk usage. |
+| `--clear` | | Remove the entire cache (prompts for confirmation unless `--yes` is set). |
+| `--yes` | `-y` | Skip the confirmation prompt when using `--clear`. |
+
+## Cache directory structure
+
+Raiku organises every cached package under a three-level hierarchy:
+
+```
+~/.raiku/cache/
+└── <Language>/
+    └── <package-name>/
+        └── <version>/
+            ├── raiku.toml     # Package manifest (hash-verified on install)
+            ├── version.yml    # Version metadata
+            ├── README.md      # Package documentation
+            ├── meta.json      # Raiku sidecar (name, version, sha256, …)
+            └── src/           # Source files
+```
+
+This layout makes it straightforward to have multiple versions of the same package on disk simultaneously — useful for `raiku rollback` and for side-by-side testing.
+
+## Examples
+
+<CodeGroup>
+```bash Show cache statistics
+raiku cache --info
+```
+
+```bash Clear the cache (with confirmation)
+raiku cache --clear
+```
+
+```bash Clear without prompting (e.g. in CI)
+raiku cache --clear --yes
+```
+</CodeGroup>
+
+### Sample output of `raiku cache --info`
+
+```
+╭─────── Cache Info ────────╮
+│  Cache directory    /home/user/.raiku/cache  │
+│  Installed packages 23                       │
+│  Total disk usage   142.7 MB                 │
+╰─────────────────────────────────────────────╯
+```
+
+### Sample output of `raiku cache --clear`
+
+```
+  This will remove 23 package(s) (142.7 MB) from /home/user/.raiku/cache
+? Wipe the entire cache? [y/N]: y
+✓ Cache cleared.
+```
+
+<Warning>
+`raiku cache --clear` permanently removes **all installed packages**. There is no undo. After clearing, you will need to reinstall each package with `raiku install` or restore the full environment from a lock file using `raiku from-lock`.
+</Warning>
+
+<Tip>
+Before clearing the cache, export your current environment first so you can restore it in one command:
+
+```bash
+raiku export --output requirements.raiku
+raiku cache --clear --yes
+# ... later ...
+raiku import --file requirements.raiku
+```
+</Tip>
+
+<Note>
+`raiku cache --clear` removes installed packages but does **not** delete your configuration (`~/.raiku/config.toml`), trust list (`~/.raiku/trusted.json`), pin list (`~/.raiku/pins.json`), or the synced index (`~/.raiku/index.json`).
+</Note>

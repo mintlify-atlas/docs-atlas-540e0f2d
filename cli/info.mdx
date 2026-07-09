@@ -1,0 +1,120 @@
+---
+title: "raiku info — Show Full Package Details"
+sidebarTitle: "info"
+description: "raiku info displays name, version, language, author, description, tags, dependencies, SHA-256, local install status, and changelog for any indexed package."
+---
+
+`raiku info` is the primary way to inspect a package before or after installation. It reads the local index (populated by `raiku sync`) and presents a rich summary panel covering every metadata field: name, version, language, author, description, license, homepage, repository path, SHA-256 hash, tags, dependencies, and local install status with an installation timestamp. Two optional flags extend the output to include the full formatted changelog from the cached `version.yml` and a recursive ASCII dependency tree, giving you a complete picture of the package and its place in your local environment.
+
+## Usage
+
+```bash
+raiku info PACKAGE [--json] [--changelog] [--deps-tree]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `PACKAGE` | Name of the package to look up (case-insensitive) |
+
+## Flags
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output the full record as formatted JSON instead of the rich panel display |
+| `--changelog` | Append a formatted changelog panel read from the package's cached `version.yml` |
+| `--deps-tree` | Append a recursive ASCII dependency tree resolved from the index |
+
+## Displayed Fields
+
+| Field | Source |
+|-------|--------|
+| Name | `raiku.toml` → `name` |
+| Version | `raiku.toml` → `version` |
+| Language | `raiku.toml` → `language` |
+| Author | `raiku.toml` → `author` |
+| Description | `raiku.toml` → `description` |
+| License | `raiku.toml` → `license` |
+| Homepage | `raiku.toml` → `homepage` |
+| Path | `index/index.json` → `path` (repo-relative) |
+| SHA-256 | `index/index.json` → `sha256` |
+| Tags | `raiku.toml` → `tags` |
+| Dependencies | `raiku.toml` → `dependencies` |
+| Local status | Checked against `~/.raiku/cache/` |
+| Installed at | Timestamp from local cache metadata |
+
+<Note>
+  `raiku info` reads from the **local index** at `~/.raiku/index.json`. If the package is not found, run `raiku sync` to refresh the index and try again.
+</Note>
+
+## Examples
+
+<CodeGroup>
+
+```bash Show info for a package
+raiku info fast-math
+```
+
+```bash Output raw JSON (useful for scripting)
+raiku info goqueue --json
+```
+
+```bash Show info with the full changelog
+raiku info blazing-vec --changelog
+```
+
+```bash Show the recursive dependency tree
+raiku info fast-math --deps-tree
+```
+
+```bash Combine flags
+raiku info fast-math --changelog --deps-tree
+```
+
+</CodeGroup>
+
+## JSON Output
+
+With `--json`, the output includes every index field plus two added keys:
+
+```json
+{
+  "name": "fast-math",
+  "version": "1.2.0",
+  "language": "Python",
+  "author": "Jane Doe",
+  "description": "Fast mathematical utilities for Python.",
+  "path": "UserSub/Python/fast-math",
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "tags": ["math", "performance"],
+  "dependencies": [],
+  "installed": true,
+  "installed_meta": {
+    "version": "1.2.0",
+    "installed_at": 1718000000
+  }
+}
+```
+
+## Changelog Output
+
+When `--changelog` is passed and the package is installed, `raiku info` reads `version.yml` from the cache and renders a changelog panel:
+
+```
+╭─── Changelog — v1.2.0 ────────────────────────────────────────╮
+│  • Added SIMD-optimised matrix multiplication                  │
+│  • Fixed overflow in fast_div for values > 2^31               │
+│  • Improved test coverage to 94%                               │
+│                                                                │
+│  Stability: stable                                             │
+╰────────────────────────────────────────────────────────────────╯
+```
+
+<Warning>
+  The `--changelog` and `--deps-tree` flags require the package to be **installed** locally. For uninstalled packages, `raiku info` shows index metadata only and prints a note that the extended data is not available.
+</Warning>
+
+<Tip>
+  Pipe `raiku info PACKAGE --json` into `jq` for scriptable package inspection. For example: `raiku info fast-math --json | jq '.tags'`
+</Tip>

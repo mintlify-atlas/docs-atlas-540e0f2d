@@ -1,0 +1,108 @@
+---
+title: "raiku init — Scaffold a New Package with a Wizard"
+sidebarTitle: "init"
+description: "raiku init launches an interactive wizard that generates raiku.toml, version.yml, README.md, and language-specific src/ files for all eight supported languages."
+---
+
+`raiku init` is your starting point for creating a new Raiku package. It walks you through an interactive wizard — prompting for name, language, version, author, description, license, build command, and tags — then generates every required file in a single step. All eight supported languages are covered with idiomatic scaffolding, so you get a properly structured `src/` directory no matter which ecosystem you are targeting. Once the wizard completes, the package directory is ready for `raiku validate` and `raiku publish`.
+
+## Usage
+
+```bash
+raiku init [NAME] [--language LANG] [--output-dir DIR] [--yes]
+```
+
+## Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `NAME` | — | prompted | Package name (lowercase letters, digits, hyphens, underscores; must start with a letter) |
+| `--language` | `-l` | prompted | Target language — skips the language prompt |
+| `--output-dir` | `-o` | `.` | Directory in which to create the package folder |
+| `--yes` | `-y` | `false` | Accept all defaults without interactive prompts |
+
+## Generated File Structure
+
+Running `raiku init` always produces the following layout:
+
+```
+<name>/
+  raiku.toml        # Package manifest
+  version.yml       # Version, stability, and changelog
+  README.md         # Documentation template
+  src/              # Language-specific source files
+```
+
+### Language-Specific `src/` Contents
+
+| Language | Files created inside `src/` |
+|----------|-----------------------------|
+| Python   | `<name>.py`, `pyproject.toml` |
+| Rust     | `lib.rs`, `Cargo.toml` |
+| C        | `<name>.c`, `<name>.h` |
+| C++      | `<name>.hpp`, `<name>.cpp`, `CMakeLists.txt` |
+| Zig      | `<name>.zig`, `build.zig` |
+| Java     | `dev/raiku/<name>/<Name>.java` |
+| C#       | `<Name>.cs`, `<name>.csproj` |
+| Go       | `<name>.go`, `<name>_test.go`, `go.mod` |
+
+<Note>
+  Language aliases are accepted — for example `py`, `rs`, `cpp`, `c++`, `cs`, `c#`, and `golang` are all normalised to their canonical form before the wizard proceeds.
+</Note>
+
+## Behavior
+
+1. If `NAME` is omitted, the wizard prompts for it and validates that it matches `^[a-z][a-z0-9_\-]*$`.
+2. The wizard then asks for language, version (default `1.0.0`), author, description, license (default `MIT`), stability level (default `stable`), build command (pre-filled from a language template), and optional comma-separated tags.
+3. Before writing any files, it prints a summary and asks for confirmation — unless `--yes` is passed.
+4. The package directory is created at `<output-dir>/<name>/`. If the directory already exists, the command exits with an error rather than overwriting anything.
+5. Source files are generated from built-in language templates that expand `{name}`, `{name_safe}`, and `{cls}` placeholders.
+
+<Warning>
+  The wizard will refuse to run if a directory named `<name>` already exists in `--output-dir`. Rename or remove the existing directory before re-running.
+</Warning>
+
+## Examples
+
+<CodeGroup>
+
+```bash Interactive (full wizard)
+# Start the wizard — answer each prompt
+raiku init
+```
+
+```bash Specify language upfront
+# Wizard runs but skips the language prompt
+raiku init my-lib --language Rust
+```
+
+```bash Fully automated with defaults
+# No prompts — ideal for CI scaffolding
+raiku init fast-sort --language Python --output-dir ./packages --yes
+```
+
+```bash Custom output directory
+# Creates ./libs/json-parser/ with C++ scaffolding
+raiku init json-parser --language C++ --output-dir ./libs
+```
+
+</CodeGroup>
+
+## Next Steps
+
+After `raiku init` succeeds, the terminal prints the three recommended follow-up commands:
+
+```bash
+# 1. Edit your source files
+cd <name>/src/
+
+# 2. Check the package is valid
+raiku validate --dir ./<name>
+
+# 3. Prepare a PR submission
+raiku publish --dir ./<name>
+```
+
+<Tip>
+  Run `raiku doctor` before `raiku init` to confirm all build tools for your chosen language are installed and accessible. This avoids surprises when the generated build command runs during `raiku install`.
+</Tip>

@@ -1,0 +1,76 @@
+---
+title: "raiku why — Explain Why a Package Is Installed"
+sidebarTitle: "why"
+description: "raiku why shows whether a package was installed directly or as a transitive dependency of another package, helping you understand your dependency graph."
+---
+
+`raiku why` answers the question *"do I actually need this package installed?"*. It checks every installed package's dependency list (via the local index) and determines whether the target package was installed directly by you or pulled in as a transitive dependency of one or more other packages. If a package is only a dependency, `raiku why` shows you which packages require it, making it safe to decide whether you can uninstall it without breaking anything. If no other installed package depends on it, `raiku why` confirms it is a direct install and is safe to remove.
+
+## Usage
+
+```bash
+raiku why PACKAGE
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `PACKAGE` | Name of the installed package to explain (case-insensitive) |
+
+## Output
+
+`raiku why` produces one of two results:
+
+**Direct install** — the package was explicitly installed and no other installed package depends on it:
+
+```
+╭─── Dependency Analysis ────────────────────────────────────────╮
+│  fast-math v1.2.0 [Python]                                      │
+│                                                                │
+│  Directly installed — not required by any other installed       │
+│  package.                                                      │
+│  Safe to remove with raiku uninstall fast-math                 │
+╰────────────────────────────────────────────────────────────────╯
+```
+
+**Transitive dependency** — one or more installed packages list this package as a dependency:
+
+```
+╭─── Dependency Analysis ────────────────────────────────────────╮
+│  fast-math v1.2.0                                              │
+│  └── required by                                               │
+│      ├── data-crunch v3.0.0                                    │
+│      └── ml-toolkit v1.5.2                                     │
+╰────────────────────────────────────────────────────────────────╯
+
+fast-math is a dependency of 2 installed package(s).
+```
+
+## Behavior
+
+- `raiku why` exits with code `1` if the package is not installed at all.
+- Dependency lookup requires the local index (`~/.raiku/index.json`). If the index is not loaded, `raiku why` still reports the direct-install case but cannot show which packages depend on the target. Run `raiku sync` to enable full analysis.
+- Version information for dependents is sourced from the index, not the local cache.
+
+<Note>
+  `raiku why` reads from both the local cache and the local index. It does not make network requests. If your index is stale, run `raiku sync` first for accurate results.
+</Note>
+
+## Examples
+
+<CodeGroup>
+
+```bash Check why a package is installed
+raiku why fast-math
+```
+
+```bash Check a transitive dependency
+raiku why goqueue
+```
+
+</CodeGroup>
+
+<Tip>
+  Use `raiku why` before `raiku uninstall` to confirm a package is not depended upon by anything else. Removing a shared dependency without checking first can break other installed packages at build time.
+</Tip>

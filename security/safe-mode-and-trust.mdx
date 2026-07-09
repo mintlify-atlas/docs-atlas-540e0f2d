@@ -1,0 +1,197 @@
+---
+title: "Safe Mode and Package Trust in Raiku"
+sidebarTitle: "Safe Mode & Trust"
+description: "Raiku's safe mode requires explicit approval before running any build command. Use raiku trust to mark reviewed packages as trusted and skip future prompts."
+---
+
+Every Raiku package carries a `build_command` that executes on your machine during installation. Because Raiku is a community-driven repository, that command could come from any contributor. Safe mode is Raiku's primary interactive defence: before running any build command, Raiku shows you the exact command and waits for you to approve it. For packages you have already reviewed and trust, the persistent trust system lets you record that decision locally so you are not prompted again. This page explains how both mechanisms work, when to use each one, and the important boundaries they share.
+
+---
+
+## How Safe Mode Works
+
+Safe mode is enabled by default (`safe_mode = true`). When safe mode is active and a package is not already trusted, Raiku pauses the installation process, prints the full `build_command` from the package's `raiku.toml`, and waits for your explicit confirmation:
+
+```text
+  Build command: pip install -e .
+  Run this build command for 'fast-math'? [y/N]:
+```
+
+<Steps>
+  <Step title="Review the command">
+    Read the displayed command carefully. Verify it matches what you would expect for the package's language and build system (e.g., `pip install -e .` for Python, `cargo build --release` for Rust).
+  </Step>
+  <Step title="Approve or reject">
+    Type `y` and press Enter to approve. The build command executes immediately. Type anything else — or press Enter without typing `y` — to reject. Raiku cancels the install and raises a `BuildError` without executing anything.
+  </Step>
+</Steps>
+
+Safe mode applies to all installs: packages fetched from the remote index and local packages installed from a directory.
+
+---
+
+## Per-Install Bypass: `--trust`
+
+To skip the confirmation prompt for a single install without adding the package to your persistent trust list, pass the `--trust` flag:
+
+```bash
+raiku install fast-math --trust
+```
+
+<Warning>
+  The `--trust` flag skips the interactive confirmation prompt **only**. It does **not** bypass the forbidden pattern scan. Every `build_command` is always checked against the full blocklist of dangerous patterns — including `rm -rf`, `:(){:|:&};:`, `eval(`, `subprocess.Popen`, and all other forbidden patterns — regardless of `--trust`, regardless of persistent trust, and regardless of any configuration setting. There is no way to bypass this check.
+</Warning>
+
+Use `--trust` when you want a one-off approval for a package you've reviewed but don't install frequently enough to warrant adding it to your permanent trust list.
+
+---
+
+## Disabling Safe Mode Globally
+
+Safe mode can be turned off globally with:
+
+```bash
+raiku config set safe_mode false
+```
+
+<Warning>
+  Disabling safe mode globally is **strongly discouraged**. With `safe_mode = false`, Raiku will execute every `build_command` without pausing for confirmation — including commands from packages you have never reviewed. This setting emits a visible warning when changed and should only be used in fully trusted, isolated, automated environments where all installed packages have been verified out-of-band. Do not disable safe mode on a development machine or in any environment with access to sensitive data.
+</Warning>
+
+---
+
+## Persistent Trust System
+
+Rather than using `--trust` on every install, you can record a trust decision permanently for packages you have reviewed. Trusted packages skip the confirmation prompt automatically on all future installs on that machine.
+
+### Commands
+
+<CardGroup cols={2}>
+  <Card title="raiku trust add" icon="circle-plus">
+    Mark a package as trusted. Optionally record your reason for the audit trail.
+
+    ```bash
+    raiku trust add fast-math
+    raiku trust add fast-math --reason "reviewed source, MIT license"
+    ```
+  </Card>
+  <Card title="raiku trust remove" icon="circle-minus">
+    Revoke trust for a specific package. The next install will prompt for confirmation again.
+
+    ```bash
+    raiku trust remove fast-math
+    ```
+  </Card>
+  <Card title="raiku trust list" icon="list">
+    Display all currently trusted packages, along with the timestamp and reason recorded when trust was granted.
+
+    ```bash
+    raiku trust list
+    ```
+  </Card>
+  <Card title="raiku trust clear" icon="trash">
+    Revoke trust for all packages at once. Add `--yes` to skip the confirmation prompt.
+
+    ```bash
+    raiku trust clear
+    raiku trust clear --yes
+    ```
+  </Card>
+</CardGroup>
+
+### Storage
+
+Trust records are stored at `~/.raiku/trusted.json` on your local machine. This file is per-machine and is never uploaded, synced, or shared. Trust decisions made on one machine do not transfer to another.
+
+### The `trusted.json` Format
+
+Each entry in `trusted.json` is keyed by the lowercase package name and records the package name, the Unix timestamp when trust was granted, and the optional reason:
+
+```json
+{
+  "trusted": {
+    "fast-math": {
+      "name": "fast-math",
+      "trusted_at": 1718000000,
+      "reason": "reviewed source, MIT license"
+    },
+    "blazing-vec": {
+      "name": "blazing-vec",
+      "trusted_at": 1718100000,
+      "reason": ""
+    }
+  }
+}
+```
+
+You can inspect and edit this file directly if needed, but prefer the `raiku trust` commands to keep the format consistent.
+
+---
+
+## `--trust` Flag vs. `raiku trust add`: When to Use Each
+
+<Tabs>
+  <Tab title="Use --trust (per-install)">
+    The `--trust` flag is the right choice when:
+
+    - You are installing a package for the first time and have reviewed the `build_command` in the terminal.
+    - You install the package infrequently and don't want to add it to your permanent trust list.
+    - You are running a one-off build in a temporary or ephemeral environment.
+
+    ```bash
+    raiku install fast-math --trust
+    ```
+  </Tab>
+  <Tab title="Use raiku trust add (persistent)">
+    `raiku trust add` is the right choice when:
+
+    - You have reviewed the package's source code, not just the build command.
+    - You install the package regularly and the repeated prompt adds friction.
+    - You want to record a reason for the trust decision as part of a personal audit trail.
+
+    ```bash
+    raiku trust add fast-math --reason "reviewed v1.2.0 source on 2024-06-10, MIT"
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## The `auto_trust` Configuration Key
+
+Raiku has an `auto_trust` configuration key that, if set to `true`, would automatically trust every package without user interaction. It defaults to `false` and is **strongly discouraged**:
+
+```bash
+raiku config set auto_trust true    # WARNING: silently runs all build commands
+```
+
+<Warning>
+  Setting `auto_trust = true` means Raiku will run `build_command` for every package without showing a prompt or requiring any confirmation. This eliminates the primary interactive defence against malicious build commands. This setting emits a visible warning when changed. Do not enable it unless you are in a fully automated environment where every package has been verified through a separate review process.
+</Warning>
+
+With `auto_trust = false` (the default), trust is always the result of an explicit, deliberate user action — either `--trust` on a specific install or `raiku trust add` for a package you've reviewed. Trust is never granted silently.
+
+---
+
+## Important: Forbidden Patterns Are Always Checked
+
+<Warning>
+  No matter what trust configuration you use — `--trust`, `raiku trust add`, `safe_mode = false`, or `auto_trust = true` — the forbidden pattern scan **always runs** before any `build_command` is executed. This check cannot be disabled by any flag, configuration, or trust record.
+</Warning>
+
+The forbidden pattern blocklist includes destructive filesystem operations (`rm -rf`, `rmdir /s`, `del /f`), disk operations (`dd if=`, `mkfs`, `format `), fork bombs (`:(){:|:&};:`), unencrypted network fetches (`wget http://`, `curl http://`), privilege escalation (`sudo rm`, `chmod 777`), raw device writes (`> /dev/sd`), SQL injection (`DROP TABLE`), and Python code injection (`__import__`, `exec(`, `eval(`, `os.system`, `subprocess.call`, `subprocess.Popen`). Any match immediately aborts installation, regardless of trust state.
+
+---
+
+## Keeping Your Install Cache Honest
+
+<Tip>
+  Run `raiku audit` periodically to re-verify the SHA-256 integrity of every package in your local cache. If any cached package has been altered since it was first installed, `raiku audit` will flag it. Use `raiku audit --fix` to automatically evict packages that fail verification so they can be cleanly reinstalled from the index.
+
+  ```bash
+  raiku audit          # verify all cached packages
+  raiku audit --fix    # evict any that fail
+  ```
+
+  This is especially useful after system migrations, shared-machine use, or any unexpected filesystem activity.
+</Tip>

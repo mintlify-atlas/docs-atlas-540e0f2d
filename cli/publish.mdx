@@ -1,0 +1,105 @@
+---
+title: "raiku publish — Prepare a Package for PR Submission"
+sidebarTitle: "publish"
+description: "raiku publish validates your package, computes its SHA-256 hash, prints the exact index.json entry, and shows step-by-step PR instructions. Does not push to GitHub."
+---
+
+`raiku publish` bridges the gap between a locally validated package and a merged pull request. It runs the full validation suite against your package directory, computes the SHA-256 hash of `raiku.toml`, constructs the exact JSON entry that must be added to `index/index.json`, and prints step-by-step instructions for opening a PR against the Raiku repository. By default, nothing is pushed — the command is entirely local and read-only unless you pass `--submit`. This design keeps contributors in full control and makes the contribution process transparent and auditable.
+
+## Usage
+
+```bash
+raiku publish [--dir PATH] [--dry-run] [--submit]
+```
+
+## Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--dir` | `.` | Path to the package directory to publish |
+| `--dry-run` | `false` | Run validation and print output, but do not write any files |
+| `--submit` | `false` | Automatically create a branch and open a PR on GitHub (requires `raiku login`) |
+
+## What `raiku publish` Outputs
+
+When validation succeeds, the command prints three things:
+
+1. **Package summary** — name, version, language, author, build command, stability level, and the computed SHA-256 hash of `raiku.toml`.
+2. **Exact `index/index.json` entry** — a ready-to-paste JSON block containing all required fields.
+3. **Contribution instructions** — a numbered checklist: fork the repo, copy your package to `UserSub/<Language>/<name>/`, add the JSON entry to `index/index.json`, and open a PR against `main`.
+
+## Manual PR Workflow
+
+```
+UserSub/
+  <Language>/
+    <package-name>/
+      raiku.toml
+      version.yml
+      README.md
+      src/
+```
+
+The target path printed by `raiku publish` is always `UserSub/<Language>/<name>`. Copy your package directory there, add the index entry, and open the PR.
+
+<Note>
+  `raiku publish` does **not** push anything to GitHub by default. It is a local helper that produces the artefacts you need to submit a PR manually.
+</Note>
+
+## Automated Submission with `--submit`
+
+When `--submit` is passed, Raiku uses the GitHub token stored by `raiku login` to:
+
+1. Fetch the current `HEAD` SHA of the `main` branch.
+2. Create a new branch named `add/<language>/<name>`.
+3. Upload `raiku.toml`, `version.yml`, and `README.md` via the GitHub Contents API.
+4. Open a pull request against `main` with a pre-filled description including the index entry JSON.
+
+The PR URL is printed on success.
+
+<Warning>
+  `--submit` requires a valid GitHub token. Run `raiku login` first to store your credentials. Without a token the command exits with an error and instructs you to authenticate.
+</Warning>
+
+## Examples
+
+<CodeGroup>
+
+```bash Publish the package in the current directory
+raiku publish
+```
+
+```bash Publish from a specific path
+raiku publish --dir ./UserSub/Python/fast-math
+```
+
+```bash Validate and preview output without writing
+raiku publish --dry-run
+```
+
+```bash Automatically open a GitHub PR
+# Requires: raiku login (to store your GitHub token)
+raiku publish --submit
+```
+
+</CodeGroup>
+
+## Index Entry Format
+
+`raiku publish` prints the index entry in the following structure. Copy it verbatim into `index/index.json`:
+
+```json
+{
+    "name": "fast-math",
+    "version": "1.0.0",
+    "language": "Python",
+    "author": "Your Name",
+    "description": "Fast mathematical utilities for Python.",
+    "path": "UserSub/Python/fast-math",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
+```
+
+<Tip>
+  Run `raiku validate --dir <path>` before `raiku publish` to get detailed error messages with field-level context. `raiku publish` will also run validation, but `raiku validate` produces richer diagnostic output.
+</Tip>

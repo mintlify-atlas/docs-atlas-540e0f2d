@@ -1,0 +1,79 @@
+---
+title: "raiku diff — Compare Installed vs Latest Package Version"
+sidebarTitle: "diff"
+description: "raiku diff shows the differences between your installed version of a package and the latest version in the index, including the changelog entries you'd gain."
+---
+
+`raiku diff` answers the question *"what would I gain by updating this package?"*. It compares the version currently cached in `~/.raiku/cache/` against the latest entry in the local index, highlights whether an update is available, and renders the changelog from the installed `version.yml` so you can review what changed. This is especially useful before running `raiku update` — it lets you make an informed decision about whether to upgrade without committing to anything.
+
+## Usage
+
+```bash
+raiku diff PACKAGE
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `PACKAGE` | Name of the package to compare (case-insensitive) |
+
+## What It Shows
+
+| Section | Description |
+|---------|-------------|
+| Installed version | The version currently cached locally |
+| Latest version | The version recorded in `~/.raiku/index.json` |
+| Update available | Highlighted in green with an arrow when the index version is newer |
+| Language & Author | Pulled from the index entry |
+| Changelog (installed) | Bullet list from `version.yml` in the cached package directory |
+
+## Behavior
+
+- Version comparison uses semantic versioning — `1.9.0` is correctly identified as older than `1.10.0`.
+- If the package is not installed, the installed version displays as `not installed` and the diff still shows the latest index entry.
+- If the package is not in the index, only cached metadata is shown.
+- If both installed and index versions match, a green *"up to date"* message is printed instead of an update prompt.
+
+<Note>
+  `raiku diff` is read-only. It never installs, updates, or modifies anything. Run `raiku update PACKAGE` to apply an available upgrade.
+</Note>
+
+## Examples
+
+<CodeGroup>
+
+```bash Check what changed for a package
+raiku diff fast-math
+```
+
+```bash Check a package you haven't installed yet
+raiku diff blazing-vec
+```
+
+</CodeGroup>
+
+## Sample Output
+
+```
+╭─── diff: fast-math ────────────────────────────────────────────╮
+│  Package    fast-math                                           │
+│  Installed  1.1.0                                              │
+│  Latest     1.2.0 ← update available                           │
+│  Language   Python                                              │
+│  Author     Jane Doe                                            │
+╰────────────────────────────────────────────────────────────────╯
+
+╭─── Installed version changelog (v1.1.0) ───────────────────────╮
+│  • Added fast_div utility function                              │
+│  • Improved matrix multiply performance by 18%                 │
+│                                                                │
+│  Stability: stable                                             │
+╰────────────────────────────────────────────────────────────────╯
+
+Run raiku update fast-math to upgrade v1.1.0 → v1.2.0
+```
+
+<Tip>
+  Run `raiku outdated` to see all packages that have newer versions available at once, then use `raiku diff PACKAGE` on the ones you want to inspect before deciding to upgrade.
+</Tip>

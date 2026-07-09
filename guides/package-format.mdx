@@ -1,0 +1,244 @@
+---
+title: "Raiku Package Format Specification"
+sidebarTitle: "Package Format"
+description: "Every Raiku package requires raiku.toml, version.yml, README.md, and a non-empty src/ directory. This page documents every field, constraint, and validation rule."
+---
+
+Every package published to the Raiku ecosystem must follow a precise, schema-validated layout. The four required artefacts — a TOML manifest, a YAML version file, a README, and a source directory — give the CLI everything it needs to install, verify, and build your package from the index. If any of these files are absent or malformed, `raiku validate` will reject the submission before a pull request can be opened.
+
+## Directory Layout
+
+```
+package-name/
+  raiku.toml       ← manifest (REQUIRED)
+  version.yml      ← version info (REQUIRED)
+  README.md        ← documentation (REQUIRED)
+  src/             ← source code (REQUIRED, non-empty)
+```
+
+All four entries must be present at the package root. The validator rejects any package missing any one of them.
+
+---
+
+## raiku.toml — Full Specification
+
+`raiku.toml` is the primary manifest. It declares everything the index and installer need to know about your package.
+
+```toml
+# -----------------------------------------------------------------------
+# REQUIRED
+# -----------------------------------------------------------------------
+
+name = "package-name"
+# Type    : string
+# Rules   : lowercase, starts with a letter, [a-z0-9_-], max 64 chars
+# Unique  : must be globally unique across the Raiku index
+# Examples: "fast-math", "blazing-vec", "goqueue"
+
+version = "1.0.0"
+# Type    : string
+# Rules   : semantic version — MAJOR.MINOR.PATCH with optional pre-release
+# Examples: "1.0.0", "0.2.1-beta.1", "2.0.0-rc.1"
+
+language = "Python"
+# Type    : string (case-sensitive)
+# Allowed : Python | Rust | C | CPP | Zig | Java | CSharp | Go
+
+author = "Your Name"
+# Type    : string, 1–128 characters
+
+build_command = "pip install -e ."
+# Type    : string, 1–512 characters
+# Rules   : must not contain forbidden patterns (see Security Constraints below)
+#           must be non-interactive
+#           must complete within 300 seconds
+
+# -----------------------------------------------------------------------
+# OPTIONAL (but recommended)
+# -----------------------------------------------------------------------
+
+description = "One sentence describing the package."
+# Type    : string, max 512 characters
+# Note    : shown in raiku search results
+
+license = "MIT"
+# Type    : string, max 64 characters — SPDX identifier preferred
+
+homepage = "https://github.com/you/your-project"
+# Type    : string, max 256 characters
+
+tags = ["math", "vectors", "utils"]
+# Type    : list of strings
+# Purpose : enables raiku search --tag filtering
+# Convention: lowercase, hyphenated (e.g. "data-structures", "linear-algebra")
+
+dependencies = ["other-package", "another-package"]
+# Type    : list of strings
+# Rules   : each entry must be a valid Raiku package name present in the index
+# Behaviour: Raiku resolves transitive deps and installs them in order before
+#            installing this package. Circular deps are detected and rejected.
+```
+
+---
+
+## version.yml — Full Specification
+
+`version.yml` records the release metadata for the current version. The `version` field must always match the value in `raiku.toml` exactly — a mismatch is a hard validation error.
+
+```yaml
+# -----------------------------------------------------------------------
+# REQUIRED
+# -----------------------------------------------------------------------
+
+version: "1.0.0"
+# Type    : string
+# Rules   : must exactly match the version field in raiku.toml
+# Format  : semantic version (MAJOR.MINOR.PATCH with optional pre-release)
+
+release_date: "2026-07-04"
+# Type    : string
+# Format  : YYYY-MM-DD (ISO 8601 calendar date)
+
+stability_level: stable
+# Type    : string
+# Allowed : stable | beta | alpha | experimental
+
+changelog:
+  - "Initial release"
+  - "Added feature X"
+# Type    : string OR list of strings
+# Rules   : must not be empty
+# Note    : when updating, add new entries — do not remove old ones
+```
+
+---
+
+## Naming Rules
+
+Package names are globally unique identifiers within the Raiku index. Every name must satisfy all of the following constraints:
+
+- **Lowercase only** — uppercase letters are never permitted.
+- **Starts with a letter** — the first character must be `a`–`z`.
+- **Allowed characters** — `[a-z0-9_-]` — letters, digits, hyphens, and underscores only.
+- **Maximum length** — 64 characters.
+- **Globally unique** — no two packages in the index may share a name.
+
+| Name | Valid? | Reason |
+|---|---|---|
+| `fast-math` | ✅ | lowercase, starts with letter |
+| `blazing_vec` | ✅ | underscore is allowed |
+| `http2-client` | ✅ | digit in body is allowed |
+| `FastMath` | ❌ | uppercase letters |
+| `2fast` | ❌ | starts with a digit |
+| `my package` | ❌ | spaces are forbidden |
+| `fast.math` | ❌ | dot is not in `[a-z0-9_-]` |
+
+---
+
+## src/ Directory Rules
+
+The `src/` entry must be a **directory** (not a file) and must satisfy all of the following:
+
+- Contains **at least one file** — an empty `src/` directory is rejected.
+- Subdirectories are permitted and encouraged where the language ecosystem expects them.
+- **No pre-compiled binaries** anywhere in the package tree: `.exe`, `.dll`, `.so`, `.dylib` are never allowed.
+
+### Language-Specific Generated Layouts
+
+When you run `raiku init`, the CLI generates a language-appropriate `src/` scaffold:
+
+| Language | Generated files in `src/` |
+|----------|--------------------------|
+| Python | `<name>.py`, `pyproject.toml` |
+| Rust | `lib.rs`, `Cargo.toml` |
+| C | `<name>.c`, `<name>.h` |
+| C++ | `<name>.hpp`, `<name>.cpp`, `CMakeLists.txt` |
+| Zig | `<name>.zig`, `build.zig` |
+| Java | `dev/raiku/<name>/<Name>.java` |
+| C# | `<Name>.cs`, `<name>.csproj` |
+| Go | `<name>.go`, `<name>_test.go`, `go.mod` |
+
+---
+
+## Forbidden File Types
+
+The following file types are **never permitted** in the package root directory:
+
+| Category | Extensions | Note |
+|---|---|---|
+| Pre-compiled binaries | `.exe`, `.dll`, `.so`, `.dylib` | Binaries must be produced by the build command, not bundled |
+| Shell scripts | `.sh`, `.bat`, `.cmd`, `.ps1` | Scripts are only permitted inside `src/` |
+| Credentials | `.key`, `.pem`, `.p12`, `.pfx` | Private keys and certificates are strictly forbidden |
+| Environment files | `.env` | Secrets must never be committed |
+
+<Warning>
+Any package containing forbidden file types in the root directory will be rejected immediately by `raiku validate` and will not pass CI.
+</Warning>
+
+---
+
+## index.json Entry Format
+
+When you run `raiku publish`, the CLI computes a SHA-256 hash of your `raiku.toml` and prints the exact JSON block to add to `index/index.json`:
+
+```json
+{
+  "name": "package-name",
+  "version": "1.0.0",
+  "language": "Python",
+  "author": "Your Name",
+  "description": "One sentence description.",
+  "path": "UserSub/Python/package-name",
+  "license": "MIT",
+  "tags": ["utils", "math"],
+  "dependencies": [],
+  "sha256": "<64-hex-char SHA-256 of raiku.toml>"
+}
+```
+
+The `sha256` is computed automatically by `raiku publish` and must be updated every time `raiku.toml` changes. The installer verifies this hash after downloading the package; a mismatch aborts installation.
+
+<Info>
+The `path` field must follow the exact pattern `UserSub/<Language>/<package-name>`. The index is the single source of truth for all package resolution — a package does not exist in Raiku unless it has a valid entry in `index/index.json`.
+</Info>
+
+---
+
+## Validation Checklist
+
+Run `raiku validate --dir <package-dir>` before opening a pull request. The command performs all checks listed below:
+
+<Accordion title="raiku.toml checks">
+- `raiku.toml` is present in the package directory
+- File is valid TOML and can be parsed without errors
+- `name` field is present, non-empty, and matches `[a-z][a-z0-9_-]*` (max 64 chars)
+- `version` field is present and follows semantic versioning (`MAJOR.MINOR.PATCH`)
+- `language` field is present and is one of the eight supported values
+- `author` field is present (1–128 characters)
+- `build_command` field is present (1–512 characters) and contains no forbidden patterns
+- `description`, `license`, `homepage`, `tags`, `dependencies` are valid if present
+- No unknown or extra fields are present
+</Accordion>
+
+<Accordion title="version.yml checks">
+- `version.yml` is present in the package directory
+- File is valid YAML and can be parsed without errors
+- `version` field is present and matches the version in `raiku.toml` exactly
+- `release_date` is present and follows `YYYY-MM-DD` format
+- `stability_level` is one of: `stable`, `beta`, `alpha`, `experimental`
+- `changelog` is present and non-empty (string or list of strings)
+</Accordion>
+
+<Accordion title="Structural checks">
+- `README.md` is present and non-empty
+- `src/` exists as a directory (not a file)
+- `src/` contains at least one file
+- `language` in `raiku.toml` matches the parent language directory (e.g. `Rust` must live under `UserSub/Rust/`)
+- No forbidden file types (`.exe`, `.dll`, `.so`, `.dylib`, `.key`, `.pem`, `.p12`, `.pfx`, `.env`) anywhere in the package
+- Shell scripts (`.sh`, `.bat`, `.cmd`, `.ps1`) are not present in the package root
+</Accordion>
+
+<Accordion title="Dependency checks">
+- Each entry in `dependencies` is a valid Raiku package name string
+- No circular dependency chains are introduced
+</Accordion>

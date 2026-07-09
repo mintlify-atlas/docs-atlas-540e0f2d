@@ -1,0 +1,82 @@
+---
+title: "raiku graph — Visualize the Dependency Graph"
+sidebarTitle: "graph"
+description: "raiku graph renders an ASCII dependency graph of all locally installed packages, showing which packages depend on which at a glance."
+---
+
+`raiku graph` renders a full ASCII dependency tree for all packages currently installed in `~/.raiku/cache/`. Root nodes — packages that are not depended upon by any other installed package — appear at the top level of the tree. Each root's transitive dependencies are indented beneath it, with missing (not installed) dependencies highlighted in yellow. This gives you an immediate visual understanding of your local package ecosystem: what is a root install, what is a shared dependency, and whether any dependency gaps exist.
+
+## Usage
+
+```bash
+raiku graph [--package PKG] [--language LANG]
+```
+
+## Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--package` | `-p` | all | Show the graph for a single named package only |
+| `--language` | `-l` | all | Filter the graph to packages of one language |
+
+## Output Format
+
+The dependency graph is rendered as an ASCII tree inside a bordered panel. Each node shows the package name, version, and language in brackets:
+
+```
+╭─── Dependency Graph ───────────────────────────────────────────╮
+│  data-crunch v3.0.0 [Python]                                   │
+│  ├── fast-math v1.2.0 [Python]                                 │
+│  └── numpy-lite v0.4.1 [Python]                               │
+│                                                                │
+│  ml-toolkit v1.5.2 [Python]                                    │
+│  ├── fast-math v1.2.0 [Python]                                 │
+│  └── scipy-mini v2.0.0 [Python]  (not installed)              │
+│                                                                │
+│  goqueue v0.9.1 [Go]                                           │
+╰────────────────────────────────────────────────────────────────╯
+
+5 package(s) installed.
+```
+
+- **Green** nodes are root packages (direct installs, not a dependency of anything else).
+- **Cyan** nodes are installed transitive dependencies.
+- **Yellow** nodes are declared dependencies that are not currently installed.
+- Tree depth is capped at 10 levels to prevent runaway recursion in pathological dependency chains.
+
+## Behavior
+
+- If the local index is not loaded, dependency edges cannot be shown and a note is printed advising you to run `raiku sync`.
+- Only **installed** packages appear as tree nodes. Declared but uninstalled dependencies are shown as yellow leaf nodes with `(not installed)` appended.
+- `--package` limits the graph to the subtree rooted at the named package; it must be installed.
+- `--language` filters both root and dependency nodes to the given language.
+
+<Note>
+  `raiku graph` reads from the local index and local cache. Run `raiku sync` before using it to ensure dependency metadata is up to date.
+</Note>
+
+## Examples
+
+<CodeGroup>
+
+```bash Show the full dependency graph
+raiku graph
+```
+
+```bash Show graph for a single package
+raiku graph --package data-crunch
+```
+
+```bash Show only Go packages
+raiku graph --language Go
+```
+
+```bash Combine filters
+raiku graph --package ml-toolkit --language Python
+```
+
+</CodeGroup>
+
+<Tip>
+  Use `raiku graph` alongside `raiku why PACKAGE` to understand the full context of any package in your cache. `raiku graph` shows the big picture; `raiku why` gives you the exact reverse-dependency path for a single package.
+</Tip>

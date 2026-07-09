@@ -1,0 +1,82 @@
+---
+title: "raiku run — Execute a Command Inside a Package"
+sidebarTitle: "run"
+description: "raiku run executes a shell command inside the cached directory of an installed package, similar to npx. Useful for running package-specific tools or scripts."
+---
+
+`raiku run` lets you execute any shell command from within the cached directory of an installed package — similar in spirit to `npx` in the Node.js ecosystem. Rather than navigating to the cache directory manually, you pass the package name and the command you want to run; Raiku resolves the cache path, sets up a clean environment with package metadata variables, and executes the command with the package directory as the working directory. This is useful for invoking package-specific scripts, running one-off builds, inspecting package internals, or testing commands without permanently modifying your shell environment.
+
+## Usage
+
+```bash
+raiku run PACKAGE CMD [ARGS...]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `PACKAGE` | Name of the installed package whose directory will be used as the working directory |
+| `CMD` | Command to execute (passed directly to the OS, not a shell) |
+| `ARGS...` | Additional arguments forwarded to the command unchanged |
+
+## Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--version` | latest installed | Run inside a specific installed version of the package |
+
+## Environment Variables
+
+`raiku run` injects the following environment variables into the subprocess:
+
+| Variable | Value |
+|----------|-------|
+| `RAIKU_PKG` | Package name |
+| `RAIKU_PKG_VERSION` | Package version |
+| `RAIKU_PKG_LANG` | Package language |
+| `RAIKU_PKG_DIR` | Absolute path to the package cache directory |
+
+All other environment variables are inherited from the calling shell.
+
+## Behavior
+
+- The command is resolved against the package's cache directory, not your current working directory.
+- If multiple versions of the same package are installed, the latest version is used unless `--version` is specified.
+- The exit code of `raiku run` matches the exit code of the subprocess exactly, making it safe to use in scripts.
+- On Windows, the command is run without a shell wrapper (`shell=False`). On Unix, it is also run directly without shell expansion.
+- Verbose mode (`raiku --verbose run ...`) prints the resolved working directory and full command before execution.
+
+<Warning>
+  The package must be installed before you can run commands inside it. Use `raiku install PACKAGE` first. If the package is listed in the index but not cached locally, `raiku run` will exit with an error.
+</Warning>
+
+## Examples
+
+<CodeGroup>
+
+```bash Run a Python script inside a cached package
+raiku run fast-math python src/fast_math.py
+```
+
+```bash Run a compiled binary inside a C package
+raiku run cmatrix ./cmatrix
+```
+
+```bash Run zig build test inside a Zig package
+raiku run zigutils zig build test
+```
+
+```bash Run a Go tool with arguments
+raiku run goqueue go run src/main.go --help
+```
+
+```bash Target a specific installed version
+raiku run fast-math --version 1.1.0 python src/fast_math.py
+```
+
+</CodeGroup>
+
+<Tip>
+  Use `raiku run PACKAGE ls src/` to quickly inspect the contents of a package's `src/` directory without navigating to the cache path manually. This is handy when exploring a newly installed package.
+</Tip>
