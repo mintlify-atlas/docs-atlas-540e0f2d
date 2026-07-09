@@ -1,7 +1,7 @@
 ---
 title: "raiku trust — Manage the Persistent Package Trust List"
-sidebarTitle: "trust"
-description: "raiku trust marks packages as trusted, skipping the safe-mode build confirmation prompt on future installs. Trust is always an explicit user action, never automatic."
+sidebarTitle: "Trust"
+description: "raiku trust marks packages as trusted, skipping build confirmation prompts. Manage the trusted list with add, remove, list, and clear subcommands."
 ---
 
 When `safe_mode` is enabled (the default), Raiku prompts you to confirm each package's build command before executing it. `raiku trust` lets you permanently mark specific packages as trusted so that prompt is suppressed on future installs. Trust is always an explicit, deliberate action — Raiku never grants it automatically, regardless of configuration. The trust list is stored locally in `~/.raiku/trusted.json` and is scoped to the current machine.

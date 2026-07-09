@@ -1,7 +1,7 @@
 ---
-title: "Raiku CLI Command Reference"
+title: "Raiku CLI Reference: All Commands and Global Options"
 sidebarTitle: "Overview"
-description: "Complete reference for the Raiku CLI. Global options apply to every command. Commands are grouped into package operations, authoring, inspection, maintenance, and configuration."
+description: "Full reference for every Raiku CLI command. Global options apply to all subcommands, spanning package operations, authoring, inspection, and maintenance."
 ---
 
 Raiku is a community-driven, Git-based, multi-language package manager that works across Python, Rust, C, C++, Zig, Java, C#, and Go. Every operation flows through the `raiku` command-line tool, which reads a local index file, manages a cache under `~/.raiku/`, and delegates build steps to each language's native toolchain. This page lists all available commands and the global options that apply to every one of them.
@@ -76,16 +76,16 @@ These flags may be placed before any subcommand and affect the entire invocation
   <Card title="Package Operations" icon="box" href="/cli/sync">
     Core day-to-day commands: sync, search, install, uninstall, update, and outdated.
   </Card>
-  <Card title="Package Authoring" icon="pen-to-square" href="/cli/install">
+  <Card title="Package Authoring" icon="pen-to-square" href="/cli/init">
     Commands for creating, validating, and publishing packages: init, validate, publish.
   </Card>
-  <Card title="Inspection & Utilities" icon="magnifying-glass" href="/cli/search">
+  <Card title="Inspection & Utilities" icon="magnifying-glass" href="/cli/list">
     Explore what is installed and why: list, info, outdated, diff, why, graph.
   </Card>
-  <Card title="Maintenance" icon="wrench" href="/cli/update">
+  <Card title="Maintenance" icon="wrench" href="/cli/audit">
     Keep your cache healthy: audit, verify, repair, rollback, doctor.
   </Card>
-  <Card title="Configuration & Tools" icon="gear" href="/cli/outdated">
+  <Card title="Configuration & Tools" icon="gear" href="/cli/config">
     Manage settings, trust, pins, completions, and authentication: config, trust, pin, completion, login.
   </Card>
 </CardGroup>

@@ -1,7 +1,7 @@
 ---
-title: "raiku config — View and Modify CLI Configuration"
-sidebarTitle: "config"
-description: "raiku config manages settings in ~/.raiku/config.toml via list, get, set, and reset subcommands. Controls safe mode, verbosity, color, cache path, and remote URLs."
+title: "raiku config — View and Modify CLI Configuration Keys"
+sidebarTitle: "Config"
+description: "raiku config manages ~/.raiku/config.toml via list, get, set, and reset subcommands. Controls safe mode, verbosity, color, cache path, and remote URLs."
 ---
 
 `raiku config` is your interface to `~/.raiku/config.toml` — the persistent settings file that controls how Raiku behaves. Rather than editing TOML by hand, the four subcommands (`list`, `get`, `set`, `reset`) let you inspect and modify every setting safely from the terminal, with automatic type coercion and validation. Changes take effect immediately on the next command invocation; there is no daemon to restart.
@@ -34,7 +34,7 @@ raiku config reset [--yes]
 | `color` | bool | `true` | Enable ANSI colour in CLI output. |
 | `index_url` | string | GitHub raw URL | URL of the remote `index.json` fetched by `raiku sync`. |
 | `raw_base_url` | string | GitHub raw URL | Base URL used to fetch raw package files during install. |
-| `cache_dir` | string | `~/.raiku/cache` | Absolute path to the local package cache directory. |
+| `cache_dir` | string | `~/.raiku/cache` | Absolute path to the local package cache directory. Edit `~/.raiku/config.toml` directly to change this value. |
 | `readonly` | bool | `false` | When true, all cache writes are blocked (useful in CI or shared environments). |
 
 ### Accepted boolean values
@@ -65,10 +65,6 @@ raiku config set color false
 
 ```bash Point to a custom index URL
 raiku config set index_url https://example.com/packages/index.json
-```
-
-```bash Move cache to a larger drive
-raiku config set cache_dir /mnt/ssd/raiku-cache
 ```
 
 ```bash Reset all settings to defaults

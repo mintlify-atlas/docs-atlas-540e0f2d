@@ -1,7 +1,7 @@
 ---
 title: "raiku outdated — Find Packages with Available Updates"
-sidebarTitle: "outdated"
-description: "raiku outdated lists all locally installed packages that have newer versions in the index. Does not install anything — use raiku update to apply upgrades."
+sidebarTitle: "Outdated"
+description: "raiku outdated lists installed packages that have newer versions in the index. Read-only — use raiku update to apply the upgrades when ready."
 ---
 
 `raiku outdated` is a read-only inspection command that compares the version of every package in your local cache against the latest version recorded in `~/.raiku/index.json` and prints a table of everything that has a newer release available. It never downloads or modifies files — its only job is to inform you. Once you know what is out of date, use `raiku update` to apply the upgrades. The `--json` flag emits machine-readable output, making `raiku outdated` a useful building block in scripts and CI pipelines.

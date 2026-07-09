@@ -1,7 +1,7 @@
 ---
-title: "raiku doctor — Check Build Tool Availability"
-sidebarTitle: "doctor"
-description: "raiku doctor checks that required build tools are installed and accessible for all or one language, reporting versions and flagging missing tools with install hints."
+title: "raiku doctor — Check Build Tool and Environment Health"
+sidebarTitle: "Doctor"
+description: "raiku doctor checks that required build tools are installed and accessible, reporting versions and install hints for each missing tool per language."
 ---
 
 `raiku doctor` probes your system for every build tool that Raiku packages may invoke during installation. For each tool it reports whether the binary is on `PATH`, what version is installed, and — when missing — a direct link or command to obtain it. This makes `doctor` the ideal first diagnostic step when a package install fails with a build error, or when setting up Raiku on a new machine.
@@ -24,8 +24,8 @@ raiku doctor [--language LANG]
 |------|---------|----------|----------|
 | Python | `python` | Python | ✅ Yes |
 | pip | `pip` | Python | ✅ Yes |
-| GCC | `gcc` | C / C++ | Optional |
-| Clang | `clang` | C / C++ | Optional |
+| GCC | `gcc` | C/C++ | Optional |
+| Clang | `clang` | C/C++ | Optional |
 | CMake | `cmake` | C++ | Optional |
 | Cargo | `cargo` | Rust | Optional |
 | Zig | `zig` | Zig | Optional |

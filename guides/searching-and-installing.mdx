@@ -1,5 +1,5 @@
 ---
-title: "Search and Install Raiku Packages"
+title: "Find and Install Raiku Packages from the CLI Index"
 sidebarTitle: "Search & Install"
 description: "Use raiku search to find packages by name, language, or tag, then raiku install to fetch, verify, and build them with dependency resolution."
 ---
@@ -20,6 +20,8 @@ raiku search QUERY [--language LANG] [--tag TAG] [--limit N] [--sort latest]
 | `--tag` | `-t` | none | Filter to packages that carry a specific tag |
 | `--limit` | `-n` | `20` | Maximum number of results to display |
 | `--sort` | | `name` | Sort by `name`, `latest` (release date), or `language` |
+| `--verified` | | off | Show only verified packages |
+| `--interactive` | `-i` | off | Open the interactive TUI package browser |
 
 ### Language Aliases
 

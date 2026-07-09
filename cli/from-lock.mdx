@@ -1,7 +1,7 @@
 ---
 title: "raiku from-lock — Install Exact Versions from raiku.lock"
-sidebarTitle: "from-lock"
-description: "raiku from-lock reads raiku.lock and installs the exact package versions it records, guaranteeing reproducible installs across machines and CI environments."
+sidebarTitle: "From Lock"
+description: "raiku from-lock reads raiku.lock and installs the exact package versions it records, guaranteeing reproducible installs across machines and CI."
 ---
 
 `raiku from-lock` reads a `raiku.lock` file and installs every package at the exact version and hash recorded in it. Unlike `raiku import` (which uses a human-readable requirements file and resolves versions through the index), `raiku from-lock` bypasses version resolution entirely — you get precisely what was locked, every time, on every machine. This makes it the right tool for CI pipelines, production deployments, and any workflow where reproducibility is non-negotiable.

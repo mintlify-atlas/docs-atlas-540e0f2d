@@ -1,7 +1,7 @@
 ---
-title: "Reproducible Installs with raiku.lock"
+title: "Raiku Lock Files: Reproducible Installs Across Machines"
 sidebarTitle: "Lock Files"
-description: "Use raiku.lock to record exact package versions and SHA-256 hashes for reproducible installs across machines. Generate it with --lock and restore with raiku from-lock."
+description: "Use raiku.lock to record exact package versions and SHA-256 hashes for reproducible installs. Generate with --lock and restore with raiku from-lock."
 ---
 
 When you build a project that depends on Raiku packages, the index will continue to receive updates — new versions, changed hashes, and new packages. Without a lock file, running `raiku install` on a different machine or at a later date might silently pick up a newer version of a dependency and produce a different build. `raiku.lock` solves this by recording the exact version, language, repository path, SHA-256 hash, and install timestamp for every package at the moment you install it. Committing `raiku.lock` to source control means anyone who checks out your project can recreate the exact same environment.

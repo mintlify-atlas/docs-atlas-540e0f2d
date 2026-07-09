@@ -1,7 +1,7 @@
 ---
-title: "raiku update — Upgrade Installed Packages"
-sidebarTitle: "update"
-description: "raiku update checks the index for newer versions and reinstalls them. Pinned packages are always skipped. Use --dry-run to preview before updating."
+title: "raiku update — Check for Updates and Reinstall Packages"
+sidebarTitle: "Update"
+description: "raiku update checks the index for newer versions and reinstalls them. Pinned packages are skipped during --all. Use --dry-run to preview before updating."
 ---
 
 `raiku update` compares the version of each installed package against the latest version recorded in the local index and reinstalls any package where a newer version is available. You can target a single package by name or update everything at once with `--all`. The command respects the pin list managed by `raiku pin` — any package that has been pinned is silently skipped during a bulk `--all` update. Before committing to actual downloads, run with `--dry-run` to get a preview table of what would change.

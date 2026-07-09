@@ -1,7 +1,7 @@
 ---
-title: "raiku cache — Manage the Local Package Cache"
-sidebarTitle: "cache"
-description: "raiku cache shows disk usage and installed package count with --info, or wipes the entire local cache with --clear. Cache lives at ~/.raiku/cache/ by default."
+title: "raiku cache — Manage and Inspect the Local Package Cache"
+sidebarTitle: "Cache"
+description: "raiku cache shows disk usage and installed package count with --info, or wipes the entire local cache with --clear. Default path is ~/.raiku/cache/."
 ---
 
 `raiku cache` gives you visibility into and control over the local package store that Raiku maintains on disk. All packages installed by Raiku live under `~/.raiku/cache/` in a structured directory tree — `raiku cache --info` lets you see how much space they occupy, while `raiku cache --clear` wipes the entire store so you can start fresh. The cache path can be customised with `raiku config set cache_dir`.

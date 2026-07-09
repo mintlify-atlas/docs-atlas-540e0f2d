@@ -1,7 +1,7 @@
 ---
-title: "raiku verify — Re-verify a Single Package Hash"
-sidebarTitle: "verify"
-description: "raiku verify re-checks the SHA-256 integrity of one installed package against the index. Use audit to check all packages at once."
+title: "raiku verify — Re-verify One Installed Package Hash"
+sidebarTitle: "Verify"
+description: "raiku verify re-checks the SHA-256 integrity of one installed package against the index. Use raiku audit to scan all packages at once."
 ---
 
 `raiku verify` recomputes the SHA-256 hash of a single installed package's `raiku.toml` and compares it against the hash recorded in the index. This is the targeted, single-package equivalent of `raiku audit`. Use it when you want a quick integrity check on one specific package without scanning your entire cache — for example, after copying a cache directory between machines or after a suspicious filesystem event.

@@ -1,7 +1,7 @@
 ---
-title: "raiku export and import — Share Package Lists"
-sidebarTitle: "export / import"
-description: "raiku export dumps all installed packages to requirements.raiku. raiku import installs every package listed in that file, enabling easy environment sharing."
+title: "raiku export and import — Share Your Package Environment"
+sidebarTitle: "Export / Import"
+description: "raiku export writes installed packages to requirements.raiku. raiku import installs every package in that file for easy environment sharing."
 ---
 
 `raiku export` and `raiku import` are complementary commands for capturing and restoring your Raiku package environment using a human-readable plain-text file. `export` writes one line per installed package (name, version, language, and optionally the SHA-256 hash) to `requirements.raiku`. `import` reads that file and installs every package it contains. Together they are the easiest way to share a Raiku environment between teammates, bootstrap CI, or onboard a new developer without requiring them to know which packages to install.

@@ -1,7 +1,7 @@
 ---
 title: "Raiku: Multi-Language Package Manager Built on GitHub"
 sidebarTitle: "Introduction"
-description: "Raiku is a community-driven CLI package manager supporting Python, Rust, C, C++, Zig, Java, C#, and Go with Git-based package hosting and built-in security."
+description: "Raiku is a community-driven CLI package manager for Python, Rust, C, C++, Zig, Java, C#, and Go — Git-based hosting, zero signup, and built-in security."
 ---
 
 Raiku is an open-source, community-driven package manager that uses GitHub as its registry — no proprietary server, no sign-up required. Every package lives directly inside the [SGizek/Raiku](https://github.com/SGizek/Raiku) repository under `UserSub/<Language>/`, and anyone can contribute by opening a pull request. When you run `raiku install`, the CLI reads a locally cached `index.json` (synced from GitHub) to locate the package, then fetches only the files it needs using raw GitHub URLs — meaning you never clone the entire monorepo just to install a single library. SHA-256 hash verification and a safe-mode build prompt protect you at every step.

@@ -1,7 +1,7 @@
 ---
-title: "raiku index — Manage the Local Package Index"
-sidebarTitle: "index"
-description: "raiku index provides three modes: --rebuild regenerates index.json from UserSub/, --stats shows package counts, --check validates every entry path and hash."
+title: "raiku index — Rebuild, Inspect, and Validate the Index"
+sidebarTitle: "Index"
+description: "raiku index provides three modes: --rebuild regenerates index.json from UserSub/, --stats shows counts, and --check validates entry paths and hashes."
 ---
 
 `raiku index` is a set of maintainer-focused tools for working with the Raiku package index. It operates on `index/index.json` — the central registry file that lives in the Raiku repository and is synced to users' machines via `raiku sync`. Most end users never need `raiku index` directly; it is primarily used by contributors and CI pipelines that manage the upstream registry. The three modes are `--rebuild`, `--stats`, and `--check`.

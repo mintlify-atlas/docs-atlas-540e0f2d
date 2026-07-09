@@ -1,7 +1,7 @@
 ---
-title: "Raiku Package Format Specification"
+title: "Raiku Package Format: Fields, Constraints, and Validation"
 sidebarTitle: "Package Format"
-description: "Every Raiku package requires raiku.toml, version.yml, README.md, and a non-empty src/ directory. This page documents every field, constraint, and validation rule."
+description: "Complete field reference for raiku.toml and version.yml, covering types, constraints, naming rules, allowed values, and the package validation checklist."
 ---
 
 Every package published to the Raiku ecosystem must follow a precise, schema-validated layout. The four required artefacts — a TOML manifest, a YAML version file, a README, and a source directory — give the CLI everything it needs to install, verify, and build your package from the index. If any of these files are absent or malformed, `raiku validate` will reject the submission before a pull request can be opened.
@@ -31,7 +31,7 @@ All four entries must be present at the package root. The validator rejects any 
 
 name = "package-name"
 # Type    : string
-# Rules   : lowercase, starts with a letter, [a-z0-9_-], max 64 chars
+# Rules   : [a-zA-Z0-9_-], max 64 chars; lowercase by convention
 # Unique  : must be globally unique across the Raiku index
 # Examples: "fast-math", "blazing-vec", "goqueue"
 
@@ -117,21 +117,19 @@ changelog:
 
 Package names are globally unique identifiers within the Raiku index. Every name must satisfy all of the following constraints:
 
-- **Lowercase only** — uppercase letters are never permitted.
-- **Starts with a letter** — the first character must be `a`–`z`.
-- **Allowed characters** — `[a-z0-9_-]` — letters, digits, hyphens, and underscores only.
+- **Lowercase by convention** — the schema permits `[a-zA-Z0-9_-]`, but lowercase is the strong community convention and all official packages use it.
+- **Allowed characters** — `[a-zA-Z0-9_-]` — letters, digits, hyphens, and underscores only.
 - **Maximum length** — 64 characters.
 - **Globally unique** — no two packages in the index may share a name.
 
 | Name | Valid? | Reason |
 |---|---|---|
-| `fast-math` | ✅ | lowercase, starts with letter |
+| `fast-math` | ✅ | follows lowercase convention |
 | `blazing_vec` | ✅ | underscore is allowed |
 | `http2-client` | ✅ | digit in body is allowed |
-| `FastMath` | ❌ | uppercase letters |
 | `2fast` | ❌ | starts with a digit |
 | `my package` | ❌ | spaces are forbidden |
-| `fast.math` | ❌ | dot is not in `[a-z0-9_-]` |
+| `fast.math` | ❌ | dot is not in `[a-zA-Z0-9_-]` |
 
 ---
 
@@ -211,7 +209,7 @@ Run `raiku validate --dir <package-dir>` before opening a pull request. The comm
 <Accordion title="raiku.toml checks">
 - `raiku.toml` is present in the package directory
 - File is valid TOML and can be parsed without errors
-- `name` field is present, non-empty, and matches `[a-z][a-z0-9_-]*` (max 64 chars)
+- `name` field is present, non-empty, and matches `[a-zA-Z0-9_-]+` (max 64 chars; lowercase by convention)
 - `version` field is present and follows semantic versioning (`MAJOR.MINOR.PATCH`)
 - `language` field is present and is one of the eight supported values
 - `author` field is present (1–128 characters)

@@ -1,7 +1,7 @@
 ---
-title: "Safe Mode and Package Trust in Raiku"
+title: "Safe Mode and the Raiku Package Trust System Explained"
 sidebarTitle: "Safe Mode & Trust"
-description: "Raiku's safe mode requires explicit approval before running any build command. Use raiku trust to mark reviewed packages as trusted and skip future prompts."
+description: "Raiku's safe mode requires explicit approval before any build command runs. Use raiku trust to mark reviewed packages and skip future prompts."
 ---
 
 Every Raiku package carries a `build_command` that executes on your machine during installation. Because Raiku is a community-driven repository, that command could come from any contributor. Safe mode is Raiku's primary interactive defence: before running any build command, Raiku shows you the exact command and waits for you to approve it. For packages you have already reviewed and trust, the persistent trust system lets you record that decision locally so you are not prompted again. This page explains how both mechanisms work, when to use each one, and the important boundaries they share.
@@ -179,7 +179,7 @@ With `auto_trust = false` (the default), trust is always the result of an explic
   No matter what trust configuration you use — `--trust`, `raiku trust add`, `safe_mode = false`, or `auto_trust = true` — the forbidden pattern scan **always runs** before any `build_command` is executed. This check cannot be disabled by any flag, configuration, or trust record.
 </Warning>
 
-The forbidden pattern blocklist includes destructive filesystem operations (`rm -rf`, `rmdir /s`, `del /f`), disk operations (`dd if=`, `mkfs`, `format `), fork bombs (`:(){:|:&};:`), unencrypted network fetches (`wget http://`, `curl http://`), privilege escalation (`sudo rm`, `chmod 777`), raw device writes (`> /dev/sd`), SQL injection (`DROP TABLE`), and Python code injection (`__import__`, `exec(`, `eval(`, `os.system`, `subprocess.call`, `subprocess.Popen`). Any match immediately aborts installation, regardless of trust state.
+The forbidden pattern blocklist includes destructive filesystem operations (`rm -rf`, `rmdir /s`, `del /f`), disk operations (`dd if=`, `mkfs`, `format `), fork bombs (`:(){:|:&};:`), unencrypted network fetches (`wget http`, `curl http://`), privilege escalation (`sudo rm`, `chmod 777`), raw device writes (`> /dev/sd`), SQL injection (`DROP TABLE`), and Python code injection (`__import__`, `exec(`, `eval(`, `os.system`, `subprocess.call`, `subprocess.Popen`). Any match immediately aborts installation, regardless of trust state.
 
 ---
 

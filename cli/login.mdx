@@ -1,7 +1,7 @@
 ---
 title: "raiku login — Store a GitHub Token for PR Submission"
-sidebarTitle: "login"
-description: "raiku login stores a GitHub personal access token for use with raiku publish --submit. Use raiku whoami to confirm the stored identity and logout to clear it."
+sidebarTitle: "Login"
+description: "raiku login stores a GitHub personal access token for use with raiku publish --submit. Use whoami to confirm the stored identity and logout to clear it."
 ---
 
 `raiku login` stores a GitHub Personal Access Token (PAT) in `~/.raiku/auth.json` so that `raiku publish --submit` can open pull requests on your behalf without you having to paste credentials every time. The token is verified against the GitHub API at login time so you know immediately whether it is valid. On POSIX systems the auth file is written with `chmod 600` so only your user account can read it.

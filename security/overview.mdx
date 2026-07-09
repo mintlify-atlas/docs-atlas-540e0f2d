@@ -1,7 +1,7 @@
 ---
-title: "Raiku Security Model: Nine Layers of Protection"
+title: "Raiku Security Model: Nine Layers of Defence in Depth"
 sidebarTitle: "Security Overview"
-description: "Raiku protects installs with schema validation, forbidden pattern scanning, SHA-256 hash verification, safe mode approval, restricted subprocess environments, and build timeouts."
+description: "How Raiku's nine layered defences protect your machine from malicious build commands, package tampering, runaway builds, and supply-chain attacks."
 ---
 
 Raiku is a community-driven repository, which means any contributor can submit a package containing a `build_command` that runs on your machine. That openness demands a principled security model. The threat landscape Raiku is designed to address includes **malicious build commands** (destructive or data-exfiltrating shell instructions embedded in `build_command`), **package tampering** (files modified in transit or after installation), **supply-chain substitution** (a legitimate package replaced with a malicious one), **runaway builds** (commands that loop indefinitely or exhaust system resources), and **post-install corruption** (a cached package silently altered after first verification). Raiku meets these threats with nine independent, layered defences — each one described in full below.
@@ -35,7 +35,7 @@ Every `build_command` is scanned for a hard-coded blocklist of dangerous pattern
 | `:(){:\|:&};:` | Fork bomb |
 | `dd if=` | Raw disk write |
 | `mkfs` | Filesystem creation |
-| `wget http://` | Unencrypted network fetch |
+| `wget http` | Unencrypted network fetch |
 | `curl http://` | Unencrypted network fetch |
 | `> /dev/sd` | Raw device write |
 | `chmod 777` | Dangerous permission escalation |
